@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}About - EchoArty{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <h1 class="mb-4">
+                <i class="fas fa-info-circle me-2"></i>About EchoArty
+            </h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">Our Mission</h3>
+                    <p class="card-text">
+                        EchoArty is a platform dedicated to showcasing digital art and fostering creativity 
+                        within the artistic community. We believe that art has the power to inspire, 
+                        connect, and transform lives.
+                    </p>
+                    
+                    <h3 class="card-title mt-4">What We Do</h3>
+                    <p class="card-text">
+                        Our platform provides artists with a space to display their work, connect with 
+                        other creatives, and reach a broader audience. We celebrate diversity in artistic 
+                        expression and support emerging talents.
+                    </p>
+                    
+                    <h3 class="card-title mt-4">Our Vision</h3>
+                    <p class="card-text">
+                        To become the leading platform for digital art appreciation and artistic collaboration, 
+                        where creativity knows no bounds and every artist has the opportunity to shine.
+                    </p>
+                    
+                    <div class="mt-4">
+                        <a href="{{ url_for('contact') }}" class="btn btn-primary">
+                            <i class="fas fa-envelope me-2"></i>Get in Touch
+                        </a>
+                        <a href="{{ url_for('gallery') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-images me-2"></i>View Gallery
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
