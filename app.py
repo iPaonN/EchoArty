@@ -1,10 +1,23 @@
 from flask import Flask, render_template
+from models import db
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Create Flask app instance
 app = Flask(__name__)
 
 # Configuration
-app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change this in production
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or \
+    'mysql+pymysql://user:password@hostname/database_name'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize DB
+db.init_app(app)
+
 
 @app.route('/')
 def home():
