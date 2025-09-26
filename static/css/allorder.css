@@ -1,0 +1,136 @@
+/* Custom styles for AllOrder page */
+.btn-outline-purple {
+  color: #9c27b0;
+  border-color: #9c27b0;
+  background: transparent;
+}
+
+.btn-outline-purple:hover {
+  background-color: #9c27b0;
+  border-color: #9c27b0;
+  color: white;
+}
+
+.table-responsive {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.table th {
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+  border: none;
+  vertical-align: middle;
+}
+
+.table td {
+  vertical-align: middle;
+  padding: 12px;
+  border-color: #eee;
+}
+
+.table tbody tr:hover {
+  background-color: #fff8e1;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.item-detail {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.item-detail hr {
+  margin: 0.5rem 0;
+  opacity: 0.3;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.5em 0.75em;
+}
+
+.image-card {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  text-align: center;
+  border: 1px solid #dee2e6;
+}
+
+.image-card h6 {
+  color: #495057;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.image-card img {
+  max-height: 300px;
+  width: 100%;
+  object-fit: contain;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+}
+
+/* Status-specific styling */
+.badge.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+.badge.bg-info {
+  background-color: #0dcaf0 !important;
+}
+
+.badge.bg-warning {
+  background-color: #ffc107 !important;
+  color: #000 !important;
+}
+
+.badge.bg-success {
+  background-color: #198754 !important;
+}
+
+.badge.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 8px 6px;
+  }
+
+  .btn-sm {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .image-card img {
+    max-height: 200px;
+  }
+}
+
+@media (max-width: 576px) {
+  .table-responsive {
+    font-size: 0.8rem;
+  }
+
+  .table th {
+    font-size: 0.75rem;
+  }
+
+  .btn-sm {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
+}

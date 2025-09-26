@@ -1,0 +1,178 @@
+{% extends "base.html" %} {% block title %}รายการสั่งซื้อ - EchoArty{% endblock
+%} {% block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/allorder.css') }}"
+/>
+{% endblock %} {% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-12">
+      <h1 class="text-center mb-4">
+        <i class="fas fa-shopping-cart me-2"></i>รายการสั่งซื้อ
+      </h1>
+
+      {% if message %}
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="mb-4">
+            <i
+              class="fas fa-exclamation-triangle text-warning"
+              style="font-size: 3rem"
+            ></i>
+          </div>
+          <h3 class="card-title">{{ message }}</h3>
+          {% if message == "Please log in to view your orders" %}
+          <div class="mt-4">
+            <a href="{{ url_for('login') }}" class="btn btn-primary">
+              <i class="fas fa-sign-in-alt me-2"></i>เข้าสู่ระบบ
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-primary">
+                <tr>
+                  <th><i class="fas fa-hashtag me-1"></i> รหัสสั่งซื้อ</th>
+                  <th><i class="fas fa-box me-1"></i> สินค้า</th>
+                  <th><i class="fas fa-info-circle me-1"></i> รายละเอียด</th>
+                  <th><i class="far fa-calendar-alt me-1"></i> วันที่</th>
+                  <th><i class="fas fa-flag me-1"></i> สถานะ</th>
+                  <th><i class="fas fa-money-bill-wave me-1"></i> ราคารวม</th>
+                  <th class="text-center">
+                    <i class="fas fa-image me-1"></i> รูปภาพ
+                  </th>
+                  <th class="text-center">
+                    <i class="fas fa-cog me-1"></i> การจัดการ
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if orders %} {% for order in orders %}
+                <tr>
+                  <td><strong>{{ order['order_id'] }}</strong></td>
+                  <td>
+                    {% if order['items'] %} {% for item in order['items'] %} {{
+                    item['name'] }}{% if not loop.last %}, {% endif %} {% endfor
+                    %} {% else %} No items {% endif %}
+                  </td>
+                  <td>
+                    {% if order['items'] %} {% for item in order['items'] %}
+                    <div class="item-detail">
+                      {{ item['detail'] or 'No specifications' }} {% if not
+                      loop.last %}
+                      <hr class="my-1" />
+                      {% endif %}
+                    </div>
+                    {% endfor %} {% else %}
+                    <span class="text-muted">No details available</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ order['order_date'] }}</td>
+                  <td>
+                    {% set status_class = 'primary' %} {% if order['status_id']
+                    == 1 %} {% set status_class = 'secondary' %} {% elif
+                    order['status_id'] == 2 %} {% set status_class = 'info' %}
+                    {% elif order['status_id'] == 3 %} {% set status_class =
+                    'warning' %} {% elif order['status_id'] == 4 %} {% set
+                    status_class = 'success' %} {% elif order['status_id'] >= 5
+                    %} {% set status_class = 'danger' %} {% endif %}
+                    <span class="badge bg-{{ status_class }}">
+                      {{ status_labels[order['status_id']] if status_labels else
+                      'Unknown' }}
+                    </span>
+                  </td>
+                  <td><strong>฿{{ order['total'] }}</strong></td>
+                  <td class="text-center">
+                    <button
+                      class="btn btn-outline-purple btn-sm"
+                      data-bill="{{ order['bill'] }}"
+                      data-custom="{{ order['custom'] }}"
+                      onclick="viewImages('/static/images/payment/' + this.dataset.bill, '/static/images/custom/' + this.dataset.custom)"
+                    >
+                      <i class="fas fa-images me-1"></i> ดู
+                    </button>
+                  </td>
+                  <td class="text-center">
+                    <a
+                      class="btn btn-primary btn-sm"
+                      href="{{ url_for('tracking', order_id=order['order_id']) }}"
+                    >
+                      <i class="fas fa-search me-1"></i>รายละเอียด
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %} {% else %}
+                <tr>
+                  <td colspan="8" class="text-center text-muted py-4">
+                    <i class="fas fa-shopping-cart fa-2x mb-3 d-block"></i>
+                    คุณยังไม่มีคำสั่งซื้อ
+                  </td>
+                </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Image Modal -->
+<div
+  class="modal fade"
+  id="imageModal"
+  tabindex="-1"
+  aria-labelledby="imageModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="imageModalLabel">
+          <i class="fas fa-images me-2"></i>รูปภาพ
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="image-card">
+              <h6 class="text-center mb-3">ใบเสร็จชำระเงิน</h6>
+              <img
+                id="billImage"
+                class="img-fluid rounded"
+                alt="Payment Receipt"
+              />
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="image-card">
+              <h6 class="text-center mb-3">รูปสินค้า</h6>
+              <img
+                id="productImage"
+                class="img-fluid rounded"
+                alt="Product Image"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{{ url_for('static', filename='js/allorder.js') }}"></script>
+{% endblock %}
