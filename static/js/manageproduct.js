@@ -1,0 +1,571 @@
+// Manage Product page functionality for Flask/Bootstrap application
+document.addEventListener("DOMContentLoaded", function () {
+  initializeManageProduct();
+});
+
+let currentProductId = null;
+
+function initializeManageProduct() {
+  setupModals();
+  setupFormHandlers();
+  setupImagePreviews();
+}
+
+// ======= NOTIFICATION SYSTEM =======
+function showNotification(message, type = "success") {
+  // Remove existing notification
+  const existingNotification = document.getElementById("status-notification");
+  if (existingNotification) {
+    existingNotification.remove();
+  }
+
+  // Create new notification
+  const notification = document.createElement("div");
+  notification.id = "status-notification";
+
+  const bgColor =
+    type === "success"
+      ? "linear-gradient(45deg, #4CAF50, #66BB6A)"
+      : type === "error"
+      ? "linear-gradient(45deg, #f44336, #ef5350)"
+      : type === "warning"
+      ? "linear-gradient(45deg, #ff9800, #ffb74d)"
+      : "linear-gradient(45deg, #2196f3, #42a5f5)";
+
+  const textColor = type === "warning" ? "#333" : "white";
+  const shadowColor =
+    type === "success"
+      ? "rgba(76, 175, 80, 0.3)"
+      : type === "error"
+      ? "rgba(244, 67, 54, 0.3)"
+      : type === "warning"
+      ? "rgba(255, 193, 7, 0.3)"
+      : "rgba(33, 150, 243, 0.3)";
+
+  notification.style.cssText = `
+        position: fixed;
+        bottom: 120px;
+        right: 20px;
+        background: ${bgColor};
+        color: ${textColor};
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px ${shadowColor};
+        z-index: 9999;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideInNotification 0.5s ease-out;
+        border: 2px solid rgba(255, 255, 255, 0.8);
+    `;
+
+  const icon =
+    type === "success"
+      ? "fa-check-circle"
+      : type === "error"
+      ? "fa-exclamation-circle"
+      : type === "warning"
+      ? "fa-exclamation-triangle"
+      : "fa-info-circle";
+
+  notification.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
+  document.body.appendChild(notification);
+
+  // Auto remove after 4 seconds
+  setTimeout(() => {
+    if (notification && notification.parentNode) {
+      notification.style.animation = "slideOutNotification 0.5s ease-in";
+      setTimeout(() => {
+        notification.remove();
+      }, 500);
+    }
+  }, 4000);
+}
+
+// ======= MODAL MANAGEMENT =======
+function setupModals() {
+  // Setup Bootstrap modals
+  const editModal = new bootstrap.Modal(document.getElementById("editModal"));
+  const addModal = new bootstrap.Modal(document.getElementById("addModal"));
+  const deleteModal = new bootstrap.Modal(
+    document.getElementById("deleteModal")
+  );
+
+  // Store modal instances globally
+  window.editModalInstance = editModal;
+  window.addModalInstance = addModal;
+  window.deleteModalInstance = deleteModal;
+
+  // Setup delete confirmation handler
+  const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+  if (confirmDeleteBtn) {
+    confirmDeleteBtn.addEventListener("click", confirmDeleteProduct);
+  }
+}
+
+function openEditModal(productId) {
+  currentProductId = productId;
+
+  // Reset form
+  const form = document.getElementById("editForm");
+  form.reset();
+
+  // Reset image preview
+  resetImagePreview("editImagePreview");
+
+  // Reset checkboxes
+  document
+    .querySelectorAll('#editModal input[name="category[]"]')
+    .forEach((checkbox) => {
+      checkbox.checked = false;
+    });
+
+  // Show loading state
+  document.getElementById("editProductName").value = "กำลังโหลด...";
+  document.getElementById("editDescription").value = "กำลังโหลด...";
+
+  // Show modal
+  window.editModalInstance.show();
+
+  // Fetch product data (simulation - replace with actual API call)
+  fetchProductData(productId)
+    .then((product) => {
+      populateEditForm(product);
+    })
+    .catch((error) => {
+      console.error("Error loading product:", error);
+      showNotification("ไม่สามารถโหลดข้อมูลสินค้าได้", "error");
+      window.editModalInstance.hide();
+    });
+}
+
+function openAddModal() {
+  // Reset form
+  const form = document.getElementById("addForm");
+  form.reset();
+
+  // Reset image preview
+  resetImagePreview("addImagePreview");
+
+  // Reset ratio inputs
+  document.getElementById("add_number_x").value = "1";
+  document.getElementById("add_number_y").value = "1";
+
+  // Reset checkboxes
+  document
+    .querySelectorAll('#addModal input[name="category[]"]')
+    .forEach((checkbox) => {
+      checkbox.checked = false;
+    });
+
+  // Show modal
+  window.addModalInstance.show();
+}
+
+function closeEditModal() {
+  window.editModalInstance.hide();
+}
+
+function closeAddModal() {
+  window.addModalInstance.hide();
+}
+
+// ======= DATA FETCHING (SIMULATION) =======
+async function fetchProductData(productId) {
+  // Simulate API call - replace with actual endpoint
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      // Sample data - replace with actual API call
+      const sampleProduct = {
+        id: productId,
+        name: "ตัวอย่างสินค้า",
+        description: "รายละเอียดสินค้าตัวอย่าง",
+        price: 1500.0,
+        amount: 10,
+        size: "1:1",
+        image: "sample.jpg",
+        categories: [
+          { id: 1, name: "หมวดหมู่ 1" },
+          { id: 2, name: "หมวดหมู่ 2" },
+        ],
+      };
+      resolve(sampleProduct);
+    }, 1000);
+  });
+}
+
+function populateEditForm(product) {
+  document.getElementById("editProductName").value = product.name;
+  document.getElementById("editDescription").value = product.description;
+  document.getElementById("editPrice").value = product.price;
+  document.getElementById("editAmount").value = product.amount;
+
+  // Set ratio values
+  if (product.size) {
+    const [x, y] = product.size.split(":");
+    document.getElementById("edit_number_x").value = x || 1;
+    document.getElementById("edit_number_y").value = y || 1;
+  }
+
+  // Set categories
+  if (product.categories && product.categories.length > 0) {
+    const categoryIds = product.categories.map((cat) => cat.id);
+    document
+      .querySelectorAll('#editModal input[name="category[]"]')
+      .forEach((checkbox) => {
+        checkbox.checked = categoryIds.includes(parseInt(checkbox.value));
+      });
+  }
+
+  // Set image preview
+  if (product.image) {
+    const imagePreview = document.getElementById("editImagePreview");
+    imagePreview.src = `/static/images/products/${product.image}`;
+    imagePreview.style.opacity = "1";
+    imagePreview.nextElementSibling.style.display = "none";
+  }
+}
+
+// ======= FORM HANDLING =======
+function setupFormHandlers() {
+  const editForm = document.getElementById("editForm");
+  const addForm = document.getElementById("addForm");
+
+  if (editForm) {
+    editForm.addEventListener("submit", handleEditSubmit);
+  }
+
+  if (addForm) {
+    addForm.addEventListener("submit", handleAddSubmit);
+  }
+}
+
+function handleEditSubmit(e) {
+  e.preventDefault();
+
+  if (!validateForm("editModal")) {
+    return;
+  }
+
+  const formData = new FormData();
+  const x = document.getElementById("edit_number_x").value;
+  const y = document.getElementById("edit_number_y").value;
+  const sizeRatio = `${x}:${y}`;
+
+  // Get selected categories
+  const selectedCategories = [];
+  document
+    .querySelectorAll('#editModal input[name="category[]"]:checked')
+    .forEach((checkbox) => {
+      selectedCategories.push(parseInt(checkbox.value));
+    });
+
+  formData.append(
+    "productName",
+    document.getElementById("editProductName").value
+  );
+  formData.append(
+    "description",
+    document.getElementById("editDescription").value
+  );
+  formData.append("price", document.getElementById("editPrice").value);
+  formData.append("size", sizeRatio);
+  formData.append("amount", document.getElementById("editAmount").value);
+  formData.append("categories", JSON.stringify(selectedCategories));
+
+  const imageFile = document.getElementById("editImage").files[0];
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+
+  // Simulate API call
+  showNotification("กำลังบันทึกข้อมูล...", "info");
+
+  setTimeout(() => {
+    showNotification("แก้ไขสินค้าเรียบร้อยแล้ว", "success");
+    window.editModalInstance.hide();
+    // window.location.reload(); // Uncomment for actual implementation
+  }, 1500);
+}
+
+function handleAddSubmit(e) {
+  e.preventDefault();
+
+  if (!validateForm("addModal")) {
+    return;
+  }
+
+  const formData = new FormData();
+  const x = document.getElementById("add_number_x").value;
+  const y = document.getElementById("add_number_y").value;
+
+  // Get selected categories
+  const selectedCategories = [];
+  document
+    .querySelectorAll('#addModal input[name="category[]"]:checked')
+    .forEach((checkbox) => {
+      selectedCategories.push(parseInt(checkbox.value));
+    });
+
+  formData.append(
+    "productName",
+    document.getElementById("addProductName").value
+  );
+  formData.append(
+    "description",
+    document.getElementById("addDescription").value
+  );
+  formData.append("price", document.getElementById("addPrice").value);
+  formData.append("amount", document.getElementById("addAmount").value);
+  formData.append("number_x", x);
+  formData.append("number_y", y);
+  formData.append("categories", JSON.stringify(selectedCategories));
+
+  const imageFile = document.getElementById("addImage").files[0];
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+
+  // Simulate API call
+  showNotification("กำลังเพิ่มสินค้า...", "info");
+
+  setTimeout(() => {
+    showNotification("เพิ่มสินค้าเรียบร้อยแล้ว", "success");
+    window.addModalInstance.hide();
+    // window.location.reload(); // Uncomment for actual implementation
+  }, 1500);
+}
+
+// ======= FORM VALIDATION =======
+function validateForm(modalId) {
+  const modal = document.getElementById(modalId);
+
+  // Validate categories
+  const selectedCategories = modal.querySelectorAll(
+    'input[name="category[]"]:checked'
+  );
+  if (selectedCategories.length === 0) {
+    const feedback = modal.querySelector('[id$="-category-feedback"]');
+    if (feedback) {
+      feedback.style.display = "block";
+      feedback.classList.add("d-block");
+    }
+    showNotification("กรุณาเลือกอย่างน้อย 1 หมวดหมู่", "warning");
+    return false;
+  }
+
+  // Hide feedback if validation passes
+  const feedback = modal.querySelector('[id$="-category-feedback"]');
+  if (feedback) {
+    feedback.style.display = "none";
+    feedback.classList.remove("d-block");
+  }
+
+  return true;
+}
+
+// ======= IMAGE PREVIEW =======
+function setupImagePreviews() {
+  const editImageInput = document.getElementById("editImage");
+  const addImageInput = document.getElementById("addImage");
+
+  if (editImageInput) {
+    editImageInput.addEventListener("change", function () {
+      previewImage(this, "editImagePreview");
+    });
+  }
+
+  if (addImageInput) {
+    addImageInput.addEventListener("change", function () {
+      previewImage(this, "addImagePreview");
+    });
+  }
+}
+
+function previewImage(input, previewId) {
+  const preview = document.getElementById(previewId);
+  const noImageText = preview.nextElementSibling;
+
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+      preview.src = e.target.result;
+      preview.style.opacity = "1";
+      if (noImageText) {
+        noImageText.style.display = "none";
+      }
+    };
+
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    resetImagePreview(previewId);
+  }
+}
+
+function resetImagePreview(previewId) {
+  const preview = document.getElementById(previewId);
+  const noImageText = preview.nextElementSibling;
+
+  preview.src = "/static/images/placeholder.jpg";
+  preview.style.opacity = "0.5";
+  if (noImageText) {
+    noImageText.style.display = "block";
+  }
+}
+
+// ======= PRODUCT MANAGEMENT =======
+let productToDelete = null;
+
+function removeProduct(productId) {
+  productToDelete = productId;
+
+  // Get product information from the table row
+  const row = document.querySelector(`tr[data-product-id="${productId}"]`);
+  if (row) {
+    const productName = row.querySelector(".product-name").textContent;
+    const productImage = row.querySelector(".product-image").src;
+
+    // Update delete modal with product information
+    document.getElementById("deleteProductId").textContent = productId;
+    document.getElementById("deleteProductName").textContent = productName;
+    document.getElementById("deleteProductImage").src = productImage;
+    document.getElementById("deleteProductInfo").style.display = "block";
+  }
+
+  // Show delete confirmation modal
+  window.deleteModalInstance.show();
+}
+
+function confirmDeleteProduct() {
+  if (!productToDelete) return;
+
+  // Hide modal first
+  window.deleteModalInstance.hide();
+
+  showNotification("กำลังลบสินค้า...", "info");
+
+  // Simulate API call
+  setTimeout(() => {
+    showNotification("ลบสินค้าเรียบร้อยแล้ว", "success");
+
+    // Remove row from table
+    const row = document.querySelector(
+      `tr[data-product-id="${productToDelete}"]`
+    );
+    if (row) {
+      row.style.animation = "fadeOut 0.5s ease-out";
+      setTimeout(() => {
+        row.remove();
+      }, 500);
+    }
+
+    // Reset productToDelete
+    productToDelete = null;
+  }, 1000);
+}
+
+// ======= UTILITY FUNCTIONS =======
+function formatPrice(price) {
+  return new Intl.NumberFormat("th-TH", {
+    style: "currency",
+    currency: "THB",
+  }).format(price);
+}
+
+function validateFileSize(file, maxSizeMB = 5) {
+  const maxSize = maxSizeMB * 1024 * 1024; // Convert to bytes
+  return file.size <= maxSize;
+}
+
+function validateImageType(file) {
+  const allowedTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+  ];
+  return allowedTypes.includes(file.type);
+}
+
+// ======= CSS ANIMATIONS =======
+const style = document.createElement("style");
+style.textContent = `
+    @keyframes slideInNotification {
+        from {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideOutNotification {
+        from {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+    }
+    
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: scale(1);
+        }
+        to {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+    }
+    
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+    
+    @keyframes deleteIconPulse {
+        0%, 100% {
+            transform: scale(1);
+            opacity: 0.7;
+        }
+        50% {
+            transform: scale(1.1);
+            opacity: 0.9;
+        }
+    }
+    
+    @keyframes slideInInfo {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+`;
+document.head.appendChild(style);
+
+// ======= GLOBAL FUNCTIONS (for onclick handlers) =======
+window.openEditModal = openEditModal;
+window.openAddModal = openAddModal;
+window.closeEditModal = closeEditModal;
+window.closeAddModal = closeAddModal;
+window.removeProduct = removeProduct;
+window.confirmDeleteProduct = confirmDeleteProduct;
+window.previewImage = previewImage;

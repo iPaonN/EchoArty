@@ -1,0 +1,605 @@
+{% extends "base.html" %} {% block title %}จัดการสินค้า - EchoArty{% endblock %}
+{% block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/manageproduct.css') }}"
+/>
+{% endblock %} {% block content %}
+<div class="container my-5">
+  <!-- Floating Action Buttons for Mobile -->
+  <div class="floating-icon">
+    <i class="fa-solid fa-plus" id="p-icon" onclick="openAddModal()"></i>
+    <i
+      class="fa-solid fa-filter"
+      id="f-icon"
+      data-bs-toggle="offcanvas"
+      data-bs-target="#sidebar"
+      aria-controls="sidebar"
+    ></i>
+  </div>
+
+  <div class="product-container">
+    <h1 class="text-center mb-4">
+      <i class="fas fa-boxes me-2"></i>จัดการสินค้า
+    </h1>
+
+    <!-- Action Buttons Row -->
+    <div class="add-product-link">
+      <div class="mb-3" id="cat-button">
+        <button
+          class="btn btn-primary px-4 py-2 fs-5 custom-button"
+          type="button"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#sidebar"
+          aria-controls="sidebar"
+        >
+          <i class="fa-solid fa-filter"></i> ตัวกรอง
+        </button>
+      </div>
+      <a onclick="openAddModal()" class="custom-button">
+        <i class="fas fa-plus me-2"></i>เพิ่มสินค้า
+      </a>
+    </div>
+
+    <!-- Products Table -->
+    <div class="table-responsive">
+      <table class="table table-hover">
+        <thead class="table-primary">
+          <tr>
+            <th style="text-align: center">
+              <i class="fas fa-hashtag me-2"></i>รหัส
+            </th>
+            <th><i class="fas fa-box me-2"></i>ชื่อสินค้า</th>
+            <th><i class="fas fa-align-left me-2"></i>รายละเอียด</th>
+            <th><i class="fas fa-tag me-2"></i>ราคา</th>
+            <th><i class="fas fa-expand me-2"></i>อัตราส่วน</th>
+            <th><i class="fas fa-cubes me-2"></i>จำนวนคงเหลือ</th>
+            <th><i class="fas fa-image me-2"></i>รูปภาพ</th>
+            <th><i class="fas fa-tags me-2"></i>หมวดหมู่</th>
+            <th style="text-align: center">
+              <i class="fas fa-cog me-2"></i>การจัดการ
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if products and products|length > 0 %} {% for item in products %}
+          <tr data-product-id="{{ item.id }}">
+            <td style="text-align: center">{{ item.id }}</td>
+            <td class="product-name">{{ item.name }}</td>
+            <td class="product-description">{{ item.description }}</td>
+            <td class="product-price">฿{{ "%.2f"|format(item.price) }}</td>
+            <td class="product-size">{{ item.size or '1:1' }}</td>
+            <td class="product-amount">{{ item.amount }}</td>
+            <td>
+              <img
+                src="{{ url_for('static', filename='images/products/' + (item.image or 'dummy.jpg')) }}"
+                alt="Product ID: {{ item.id }}"
+                class="product-image"
+                width="50"
+              />
+            </td>
+            <td class="product-categories">
+              {% if item.categories and item.categories|length > 0 %}
+              <ul class="category-list">
+                {% for cat in item.categories %}
+                <li>{{ cat.name }}</li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <span class="text-muted">ไม่มีหมวดหมู่</span>
+              {% endif %}
+            </td>
+            <td style="text-align: center">
+              <div class="d-flex gap-2 justify-content-center flex-nowrap">
+                <button
+                  class="btn btn-warning btn-sm edit-link"
+                  onclick="openEditModal('{{ item.id }}')"
+                >
+                  <i class="fas fa-edit me-1"></i>แก้ไข
+                </button>
+                <button
+                  class="btn btn-danger btn-sm remove-link"
+                  onclick="removeProduct('{{ item.id }}')"
+                >
+                  <i class="fas fa-trash-alt me-1"></i>ลบ
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %} {% else %}
+          <tr>
+            <td colspan="9" class="text-center py-4">
+              <i class="fas fa-box-open text-muted me-2"></i>
+              ไม่มีสินค้าในระบบ
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Mobile Offcanvas Sidebar -->
+  <div
+    class="offcanvas offcanvas-start"
+    tabindex="-1"
+    id="sidebar"
+    aria-labelledby="sidebarLabel"
+  >
+    <div class="offcanvas-header bg-primary text-white">
+      <h5 class="offcanvas-title" id="sidebarLabel">
+        <i class="fas fa-filter me-2"></i>หมวดหมู่สินค้า
+      </h5>
+      <button
+        type="button"
+        class="btn-close btn-close-white"
+        data-bs-dismiss="offcanvas"
+        aria-label="Close"
+      ></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="list-group">
+        <a
+          href="{{ url_for('manage_products') }}"
+          class="list-group-item list-group-item-action"
+        >
+          <i class="fas fa-th-large me-2"></i>ทั้งหมด
+        </a>
+        {% if categories %} {% for category in categories %}
+        <a
+          href="{{ url_for('manage_products_by_category', category_id=category.id) }}"
+          class="list-group-item list-group-item-action"
+        >
+          <i class="fas fa-tag me-2"></i>{{ category.name }}
+        </a>
+        {% endfor %} {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Product Modal -->
+  <div
+    class="modal fade"
+    id="editModal"
+    tabindex="-1"
+    aria-labelledby="editModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="editModalLabel">
+            <i class="fas fa-edit me-2"></i>แก้ไขสินค้า
+          </h5>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <form id="editForm">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="editProductName" class="form-label">
+                    <i class="fas fa-tag me-2"></i>ชื่อสินค้า
+                  </label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="editProductName"
+                    name="productName"
+                    required
+                  />
+                  <div class="form-text text-primary">
+                    <i class="fas fa-info-circle me-1"></i>
+                    หมายเหตุ: ไม่สามารถเปลี่ยนชื่อสินค้าและรูปภาพพร้อมกันได้
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="editDescription" class="form-label">
+                    <i class="fas fa-align-left me-2"></i>รายละเอียด
+                  </label>
+                  <textarea
+                    class="form-control"
+                    id="editDescription"
+                    name="description"
+                    rows="4"
+                    required
+                  ></textarea>
+                </div>
+
+                <div class="mb-3">
+                  <label for="editPrice" class="form-label">
+                    <i class="fas fa-dollar-sign me-2"></i>ราคา
+                    <span class="text-danger">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="editPrice"
+                    name="price"
+                    step="0.01"
+                    min="0.01"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">
+                    <i class="fas fa-expand-alt me-2"></i>อัตราส่วน
+                  </label>
+                  <div class="ratio-inputs d-flex align-items-center gap-2">
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="edit_number_x"
+                      name="number_x"
+                      min="1"
+                      value="1"
+                      style="width: 80px"
+                    />
+                    <span class="fw-bold">:</span>
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="edit_number_y"
+                      name="number_y"
+                      min="1"
+                      value="1"
+                      style="width: 80px"
+                    />
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="editAmount" class="form-label">
+                    <i class="fas fa-boxes me-2"></i>จำนวน
+                  </label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="editAmount"
+                    name="amount"
+                    step="1"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">
+                    <i class="fas fa-tags me-2"></i>หมวดหมู่
+                    <span class="text-danger">*</span>
+                  </label>
+                  <div
+                    class="category-checkbox-container border rounded p-3 bg-light"
+                    style="max-height: 200px; overflow-y: auto"
+                  >
+                    {% if categories %} {% for category in categories %}
+                    <div class="form-check mb-2">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        name="category[]"
+                        value="{{ category.id }}"
+                        id="edit-category-{{ category.id }}"
+                      />
+                      <label
+                        class="form-check-label"
+                        for="edit-category-{{ category.id }}"
+                      >
+                        {{ category.name }}
+                      </label>
+                    </div>
+                    {% endfor %} {% endif %}
+                  </div>
+                  <div class="invalid-feedback" id="edit-category-feedback">
+                    กรุณาเลือกอย่างน้อย 1 หมวดหมู่
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="editImage" class="form-label">
+                    <i class="fas fa-image me-2"></i>อัพโหลดรูปภาพ
+                  </label>
+                  <input
+                    type="file"
+                    class="form-control"
+                    id="editImage"
+                    name="image"
+                    accept="image/*"
+                    onchange="previewImage(this, 'editImagePreview')"
+                  />
+                  <div class="image-preview-container mt-2">
+                    <img
+                      id="editImagePreview"
+                      src="{{ url_for('static', filename='images/placeholder.jpg') }}"
+                      alt="Preview"
+                      class="image-preview img-fluid rounded"
+                    />
+                    <div class="no-image-text text-muted text-center">
+                      ไม่ได้เลือกรูปภาพ
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-save me-2"></i>บันทึกการแก้ไข
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Product Modal -->
+  <div
+    class="modal fade"
+    id="addModal"
+    tabindex="-1"
+    aria-labelledby="addModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="addModalLabel">
+            <i class="fas fa-plus me-2"></i>เพิ่มสินค้าใหม่
+          </h5>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <form
+            id="addForm"
+            action="{{ url_for('add_product') }}"
+            method="post"
+            enctype="multipart/form-data"
+          >
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="addProductName" class="form-label">
+                    <i class="fas fa-tag me-2"></i>ชื่อสินค้า
+                  </label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="addProductName"
+                    name="productName"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="addDescription" class="form-label">
+                    <i class="fas fa-align-left me-2"></i>รายละเอียด
+                  </label>
+                  <textarea
+                    class="form-control"
+                    id="addDescription"
+                    name="description"
+                    rows="4"
+                    required
+                  ></textarea>
+                </div>
+
+                <div class="mb-3">
+                  <label for="addPrice" class="form-label">
+                    <i class="fas fa-dollar-sign me-2"></i>ราคา
+                    <span class="text-danger">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="addPrice"
+                    name="price"
+                    step="0.01"
+                    min="0.01"
+                    required
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">
+                    <i class="fas fa-expand-alt me-2"></i>อัตราส่วน
+                  </label>
+                  <div class="ratio-inputs d-flex align-items-center gap-2">
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="add_number_x"
+                      name="number_x"
+                      min="1"
+                      value="1"
+                      style="width: 80px"
+                    />
+                    <span class="fw-bold">:</span>
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="add_number_y"
+                      name="number_y"
+                      min="1"
+                      value="1"
+                      style="width: 80px"
+                    />
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="addAmount" class="form-label">
+                    <i class="fas fa-boxes me-2"></i>จำนวน
+                  </label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="addAmount"
+                    name="amount"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">
+                    <i class="fas fa-tags me-2"></i>หมวดหมู่
+                    <span class="text-danger">*</span>
+                  </label>
+                  <div
+                    class="category-checkbox-container border rounded p-3 bg-light"
+                    style="max-height: 200px; overflow-y: auto"
+                  >
+                    {% if categories %} {% for category in categories %}
+                    <div class="form-check mb-2">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        name="category[]"
+                        value="{{ category.id }}"
+                        id="add-category-{{ category.id }}"
+                      />
+                      <label
+                        class="form-check-label"
+                        for="add-category-{{ category.id }}"
+                      >
+                        {{ category.name }}
+                      </label>
+                    </div>
+                    {% endfor %} {% endif %}
+                  </div>
+                  <div class="invalid-feedback" id="add-category-feedback">
+                    กรุณาเลือกอย่างน้อย 1 หมวดหมู่
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="addImage" class="form-label">
+                    <i class="fas fa-image me-2"></i>อัพโหลดรูปภาพ
+                  </label>
+                  <input
+                    type="file"
+                    class="form-control"
+                    id="addImage"
+                    name="image"
+                    accept="image/jpeg, image/jpg, image/png, image/webp, image/gif, image/jfif"
+                    onchange="previewImage(this, 'addImagePreview')"
+                  />
+                  <div class="image-preview-container mt-2">
+                    <img
+                      id="addImagePreview"
+                      src="{{ url_for('static', filename='images/placeholder.jpg') }}"
+                      alt="Preview"
+                      class="image-preview img-fluid rounded"
+                    />
+                    <div class="no-image-text text-muted text-center">
+                      ไม่ได้เลือกรูปภาพ
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i>เพิ่มสินค้า
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div
+    class="modal fade"
+    id="deleteModal"
+    tabindex="-1"
+    aria-labelledby="deleteModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header bg-danger text-white border-0">
+          <h5 class="modal-title" id="deleteModalLabel">
+            <i class="fas fa-exclamation-triangle me-2"></i>ยืนยันการลบสินค้า
+          </h5>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body text-center py-4">
+          <div class="mb-3">
+            <i
+              class="fas fa-trash-alt text-danger"
+              style="font-size: 4rem; opacity: 0.7"
+            ></i>
+          </div>
+          <h4 class="text-dark mb-3">คุณแน่ใจหรือไม่?</h4>
+          <p class="text-muted mb-0">การดำเนินการนี้ไม่สามารถยกเลิกได้</p>
+          <p class="text-muted">สินค้าจะถูกลบออกจากระบบอย่างถาวร</p>
+
+          <!-- Product Info Display -->
+          <div
+            class="alert alert-light border mt-3"
+            id="deleteProductInfo"
+            style="display: none"
+          >
+            <div class="d-flex align-items-center">
+              <img
+                id="deleteProductImage"
+                src=""
+                alt="Product"
+                class="rounded me-3"
+                style="width: 60px; height: 60px; object-fit: cover"
+              />
+              <div class="text-start">
+                <h6 class="mb-1" id="deleteProductName">ชื่อสินค้า</h6>
+                <small class="text-muted"
+                  >รหัส: <span id="deleteProductId"></span
+                ></small>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer border-0 justify-content-center">
+          <button
+            type="button"
+            class="btn btn-outline-secondary px-4"
+            data-bs-dismiss="modal"
+          >
+            <i class="fas fa-times me-2"></i>ยกเลิก
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger px-4"
+            id="confirmDeleteBtn"
+          >
+            <i class="fas fa-trash-alt me-2"></i>ลบสินค้า
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{{ url_for('static', filename='js/manageproduct.js') }}"></script>
+{% endblock %}
