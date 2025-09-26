@@ -1,0 +1,123 @@
+{% extends "base.html" %} {% block title %}Login - EchoArty{% endblock %} {%
+block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/login.css') }}"
+/>
+{% endblock %} {% block content %}
+<!-- Login Section -->
+<div class="login-container">
+  <div class="login-card">
+    <h2 class="login-title">Login</h2>
+
+    <div class="login-notification">
+      Enter your username/email and password to login.
+    </div>
+
+    <form
+      class="login-form"
+      method="POST"
+      action="{{ url_for('login') if url_for else '/login' }}"
+    >
+      <div class="mb-3">
+        <input
+          type="text"
+          class="form-control"
+          name="email"
+          placeholder="Username or Email"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <input
+          type="password"
+          class="form-control"
+          name="password"
+          placeholder="Password"
+          required
+        />
+      </div>
+
+      <div class="forgot-password">
+        <a href="#">Forgot Password?</a>
+      </div>
+
+      <button type="submit" class="login-btn">Click to login</button>
+
+      <div class="signup-link">
+        <a href="{{ url_for('register') if url_for else '/register' }}"
+          >Don't have account? Sign up!</a
+        >
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Features Section -->
+<section class="features-section">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-4">
+        <div class="feature-item">
+          <div class="feature-icon">
+            <i class="fas fa-heart"></i>
+          </div>
+          <div class="feature-title">We made with Love</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-item">
+          <div class="feature-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <div class="feature-title">Guarantee 100%</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="feature-item">
+          <div class="feature-icon">
+            <i class="fas fa-headphones"></i>
+          </div>
+          <div class="feature-title">Listening at ...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- About Section -->
+<section class="about-section">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6">
+        <h3 class="about-title">
+          EchoArty : Customize Art Toy Website in Thailand
+        </h3>
+        <p class="about-text">
+          We support all Artist and Maker Lorem ipsum dolor sit amet,
+          consectetur adipiscing elit. Nulla nulla mauris, sodales id placerat
+          et, vulputate et ligula. Interdum et malesuada fames ac ante ipsum
+          primis in faucibus.
+        </p>
+      </div>
+      <div class="col-md-6">
+        <p class="about-text">
+          We support all Artist and Maker Lorem ipsum dolor sit amet,
+          consectetur adipiscing elit. Nulla nulla mauris, sodales id placerat
+          et, vulputate et ligula. Interdum et malesuada fames ac ante ipsum
+          primis in faucibus.
+        </p>
+        <p class="about-text">
+          We support all Artist and Maker Lorem ipsum dolor sit amet,
+          consectetur adipiscing elit. Nulla nulla mauris, sodales id placerat
+          et, vulputate et ligula. Interdum et malesuada fames ac ante ipsum
+          primis in faucibus.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %} {% block extra_js %}
+<script src="{{ url_for('static', filename='js/login.js') }}"></script>
+{% endblock %}
