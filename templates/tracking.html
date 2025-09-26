@@ -1,0 +1,110 @@
+{% extends "base.html" %} {% block title %}ติดตามออเดอร์ - EchoArty{% endblock
+%} {% block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/tracking.css') }}"
+/>
+{% endblock %} {% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-lg-10 mx-auto">
+      {% if not order %}
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="mb-4">
+            <i
+              class="fas fa-exclamation-triangle text-warning"
+              style="font-size: 3rem"
+            ></i>
+          </div>
+          <h3 class="card-title">
+            {{ message if message else "ไม่พบคำสั่งซื้อ" }}
+          </h3>
+          <div class="mt-4">
+            <button class="btn btn-secondary" onclick="window.history.back()">
+              <i class="fas fa-arrow-left me-2"></i>ย้อนกลับ
+            </button>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <h1 class="tracking-title text-center mb-5">
+        <i class="fas fa-shipping-fast me-2"></i>ติดตามคำสั่งซื้อ
+      </h1>
+
+      <div
+        class="progress__container {{ 'failed' if order.status_id >= 5 else '' }}"
+        data-status-id="{{ order.status_id }}"
+      >
+        <div class="progress__bar js-bar"></div>
+
+        <div class="progress__step">
+          <div
+            class="progress__circle js-circle {{ 'active' if order.status_id >= 2 else '' }}"
+          >
+            <i class="fas fa-box-open"></i>
+          </div>
+          <div class="progress__label">รอการแพ็คสินค้า</div>
+        </div>
+
+        <div class="progress__step">
+          <div
+            class="progress__circle js-circle {{ 'active' if order.status_id >= 3 else '' }}"
+          >
+            <i class="fas fa-box"></i>
+          </div>
+          <div class="progress__label">กำลังแพ็คสินค้า</div>
+        </div>
+
+        <div class="progress__step">
+          <div
+            class="progress__circle js-circle {{ 'active' if order.status_id >= 4 else '' }}"
+          >
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="progress__label">สำเร็จ</div>
+        </div>
+      </div>
+
+      <div class="card order-details">
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0">
+            <i class="fas fa-info-circle me-2"></i>รายละเอียดคำสั่งซื้อ
+          </h3>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <p><strong>หมายเลขคำสั่งซื้อ:</strong> {{ order.order_id }}</p>
+              <p><strong>ชื่อลูกค้า:</strong> {{ order.customer_name }}</p>
+              <p><strong>วันที่สั่งซื้อ:</strong> {{ order.order_date }}</p>
+            </div>
+            <div class="col-md-6">
+              <p>
+                <strong>ช่องทางติดต่อ:</strong> {{ order.email or 'ไม่ระบุ' }} |
+                {{ order.phone or 'ไม่ระบุ' }}
+              </p>
+              <p>
+                <strong>ที่อยู่จัดส่ง:</strong> {{ order.address or 'ไม่ได้ระบุ'
+                }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <button class="btn btn-secondary" onclick="window.history.back()">
+          <i class="fas fa-arrow-left me-2"></i>ย้อนกลับ
+        </button>
+        <a href="{{ url_for('home') }}" class="btn btn-primary ms-2">
+          <i class="fas fa-home me-2"></i>กลับหน้าแรก
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{{ url_for('static', filename='js/tracking.js') }}"></script>
+{% endblock %}
