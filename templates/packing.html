@@ -1,0 +1,172 @@
+{% extends "base.html" %} {% block title %}จัดการแพ็คกิ้ง - EchoArty{% endblock
+%} {% block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/packing.css') }}"
+/>
+{% endblock %} {% block content %}
+<div class="container my-5">
+  <div class="packing-container">
+    <div class="page-header">
+      <h1><i class="fas fa-box-open me-2"></i>ระบบจัดการคำสั่งซื้อ</h1>
+    </div>
+
+    <div class="table-container">
+      <h2><i class="fas fa-clipboard-list me-2"></i>รายการคำสั่งซื้อ</h2>
+
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead class="table-primary">
+            <tr>
+              <th><i class="fas fa-hashtag me-2"></i>รหัสคำสั่งซื้อ</th>
+              <th title="Customer Name">
+                <i class="fas fa-user me-2"></i>ลูกค้า
+              </th>
+              <th><i class="fas fa-info-circle me-2"></i>รายละเอียด</th>
+              <th><i class="fas fa-calendar me-2"></i>วันที่</th>
+              <th><i class="fas fa-file-invoice me-2"></i>รูปภาพ</th>
+              <th><i class="fas fa-tasks me-2"></i>สถานะ</th>
+              <th><i class="fas fa-tools me-2"></i>การจัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if orders and orders|length > 0 %} {% for order in orders %}
+            <tr data-order-id="{{ order.order_id }}">
+              <td class="order-id">{{ order.order_id }}</td>
+              <td class="customer-name">{{ order.customer }}</td>
+              <td class="order-description">{{ order.description }}</td>
+              <td class="order-date">{{ order.order_date }}</td>
+              <td>
+                {% set bill_url = url_for('static', filename='images/payment/' +
+                (order.bill_img or 'dummy.jpg')) %} {% set product_url =
+                url_for('static', filename='images/products/' + (order.image or
+                'dummy.jpg')) %}
+                <button
+                  class="btn btn-info btn-sm btn-image"
+                  onclick="viewImages('{{ bill_url }}', '{{ product_url }}')"
+                >
+                  <i class="fas fa-images me-1"></i>ดู
+                </button>
+              </td>
+              <td>
+                {% if order.status == 3 %}
+                <span
+                  id="status-{{ order.order_id }}"
+                  class="badge status-packing"
+                  >กำลังแพ็ค</span
+                >
+                {% elif order.status == 4 %}
+                <span
+                  id="status-{{ order.order_id }}"
+                  class="badge status-success"
+                  >สำเร็จ</span
+                >
+                {% elif order.status == 5 %}
+                <span
+                  id="status-{{ order.order_id }}"
+                  class="badge status-failed"
+                  >ล้มเหลว</span
+                >
+                {% elif order.status == 2 %}
+                <span
+                  id="status-{{ order.order_id }}"
+                  class="badge status-waiting"
+                  >รอการแพ็ค</span
+                >
+                {% else %}
+                <span
+                  id="status-{{ order.order_id }}"
+                  class="badge bg-secondary"
+                  >ไม่ระบุ</span
+                >
+                {% endif %}
+              </td>
+              <td>
+                <div class="action-buttons d-flex flex-wrap gap-1">
+                  <button
+                    class="btn btn-primary btn-sm btn-packing"
+                    onclick="changeStatus('status-{{ order.order_id }}', 'Packing', '{{ order.order_id }}')"
+                  >
+                    <i class="fas fa-box me-1"></i><span>กำลังแพ็ค</span>
+                  </button>
+                  <button
+                    class="btn btn-success btn-sm btn-status-success"
+                    onclick="changeStatus('status-{{ order.order_id }}', 'Success', '{{ order.order_id }}')"
+                  >
+                    <i class="fas fa-check me-1"></i><span>สำเร็จ</span>
+                  </button>
+                  <button
+                    class="btn btn-danger btn-sm btn-failed"
+                    onclick="changeStatus('status-{{ order.order_id }}', 'Failed', '{{ order.order_id }}')"
+                  >
+                    <i class="fas fa-times me-1"></i><span>ล้มเหลว</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %} {% else %}
+            <tr>
+              <td colspan="7" class="text-center py-4">
+                <i class="fas fa-clipboard-list text-muted me-2"></i>
+                ไม่มีคำสั่งซื้อในระบบ
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Modal -->
+  <div
+    class="modal fade"
+    id="imageModal"
+    tabindex="-1"
+    aria-labelledby="imageModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="imageModalLabel">
+            <i class="fas fa-images me-2"></i>รูปภาพ
+          </h5>
+          <button
+            type="button"
+            class="btn-close btn-close-white"
+            data-bs-dismiss="modal"
+            aria-label="Close"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <div class="images-grid">
+            <div class="image-card">
+              <h3 class="text-center mb-3">ใบเสร็จชำระเงิน</h3>
+              <div class="image-container">
+                <img
+                  id="billImage"
+                  class="modal-image img-fluid rounded"
+                  alt="Payment Receipt"
+                />
+              </div>
+            </div>
+            <div class="image-card">
+              <h3 class="text-center mb-3">รูปสินค้า</h3>
+              <div class="image-container">
+                <img
+                  id="productImage"
+                  class="modal-image img-fluid rounded"
+                  alt="Product Image"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="{{ url_for('static', filename='js/packing.js') }}"></script>
+{% endblock %}
