@@ -1,0 +1,93 @@
+{% extends "base.html" %} {% block title %}ค้นหาออเดอร์ - EchoArty{% endblock %}
+{% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-lg-6 mx-auto">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0 text-center">
+            <i class="fas fa-search me-2"></i>ติดตามคำสั่งซื้อ
+          </h3>
+        </div>
+        <div class="card-body">
+          <p class="text-muted text-center mb-4">
+            กรุณาใส่หมายเลขคำสั่งซื้อเพื่อติดตามสถานะการสั่งซื้อของคุณ
+          </p>
+
+          <form method="POST" action="{{ url_for('tracking') }}">
+            <div class="mb-3">
+              <label for="order_id" class="form-label">
+                <i class="fas fa-hashtag me-1"></i>หมายเลขคำสั่งซื้อ
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="order_id"
+                name="order_id"
+                placeholder="เช่น ORD001"
+                required
+                style="text-transform: uppercase"
+              />
+              <div class="form-text">
+                หมายเลขคำสั่งซื้อที่คุณได้รับทางอีเมลหรือ SMS
+              </div>
+            </div>
+
+            <div class="d-grid">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search me-2"></i>ค้นหาคำสั่งซื้อ
+              </button>
+            </div>
+          </form>
+
+          <hr class="my-4" />
+
+          <div class="text-center">
+            <h6 class="text-muted mb-3">ทดสอบด้วยหมายเลขตัวอย่าง:</h6>
+            <div class="row">
+              <div class="col-6 mb-2">
+                <a
+                  href="{{ url_for('tracking', order_id='ORD001') }}"
+                  class="btn btn-outline-info btn-sm w-100"
+                >
+                  ORD001 <small>(รอแพ็ค)</small>
+                </a>
+              </div>
+              <div class="col-6 mb-2">
+                <a
+                  href="{{ url_for('tracking', order_id='ORD002') }}"
+                  class="btn btn-outline-warning btn-sm w-100"
+                >
+                  ORD002 <small>(กำลังแพ็ค)</small>
+                </a>
+              </div>
+              <div class="col-6 mb-2">
+                <a
+                  href="{{ url_for('tracking', order_id='ORD003') }}"
+                  class="btn btn-outline-success btn-sm w-100"
+                >
+                  ORD003 <small>(สำเร็จ)</small>
+                </a>
+              </div>
+              <div class="col-6 mb-2">
+                <a
+                  href="{{ url_for('tracking', order_id='ORD004') }}"
+                  class="btn btn-outline-danger btn-sm w-100"
+                >
+                  ORD004 <small>(ล้มเหลว)</small>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-secondary">
+          <i class="fas fa-home me-2"></i>กลับหน้าแรก
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
