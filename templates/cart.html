@@ -1,0 +1,347 @@
+{% extends "base.html" %} {% block title %}รถเข็น - EchoArty{% endblock %} {%
+block extra_css %}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/cart.css') }}"
+/>
+{% endblock %} {% block content %}
+<div class="container my-5">
+  <div class="row">
+    <div class="col-12">
+      <!-- Cart Container -->
+      <div class="cart-container">
+        <h1 class="text-center mb-4">
+          <i class="fas fa-shopping-cart me-2"></i>รถเข็น
+        </h1>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-primary">
+                  <tr>
+                    <th><i class="fas fa-image me-2"></i>รูปภาพ</th>
+                    <th><i class="fas fa-box me-2"></i>สินค้า</th>
+                    <th><i class="fas fa-tag me-2"></i>ราคาพื้นฐาน</th>
+                    <th><i class="fas fa-expand me-2"></i>อัตราส่วน</th>
+                    <th class="text-center">
+                      <i class="fas fa-cubes me-2"></i>ปริมาณ
+                    </th>
+                    <th><i class="fas fa-tags me-2"></i>ราคาต่อชิ้น</th>
+                    <th><i class="fas fa-calculator me-2"></i>ราคารวม</th>
+                    <th class="text-center">
+                      <i class="fas fa-cog me-2"></i>การจัดการ
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if cart and cart|length > 0 %} {% for item in cart %}
+                  <tr>
+                    <td>
+                      <img
+                        src="{{ url_for('static', filename='images/products/' + (item['image'] or 'dummy.jpg')) }}"
+                        alt="{{ item['name'] }}"
+                        class="cart-item-image"
+                      />
+                    </td>
+                    <td>{{ item['name'] }}</td>
+                    <td>฿{{ "%.2f"|format(item['price']) }}</td>
+                    <td>{{ item['size'] or '1:1' }}</td>
+                    <td class="text-center">
+                      <div class="quantity-controls">
+                        <button
+                          class="btn btn-outline-danger btn-sm btn-decrease"
+                          type="button"
+                          data-product-id="{{ item['product_id'] }}"
+                        >
+                          <i class="fas fa-minus"></i>
+                        </button>
+                        <span class="quantity-value mx-2"
+                          >{{ item['quantity'] }}</span
+                        >
+                        <button
+                          class="btn btn-outline-success btn-sm btn-increase"
+                          type="button"
+                          data-product-id="{{ item['product_id'] }}"
+                        >
+                          <i class="fas fa-plus"></i>
+                        </button>
+                      </div>
+                    </td>
+                    <td>฿{{ "%.2f"|format(item['price']) }}</td>
+                    <td>
+                      ฿{{ "%.2f"|format(item['price'] * item['quantity']) }}
+                    </td>
+                    <td class="text-center">
+                      <button
+                        type="button"
+                        class="btn btn-info btn-sm me-1"
+                        onclick="showDetailModal(this)"
+                        data-product-name="{{ item['name'] }}"
+                        data-product-image="{{ item['image'] or 'dummy.jpg' }}"
+                        data-product-price="{{ item['price'] }}"
+                        data-product-size="{{ item['size'] or '1:1' }}"
+                        data-product-quantity="{{ item['quantity'] }}"
+                        data-product-id="{{ item['product_id'] }}"
+                      >
+                        <i class="fas fa-info-circle me-1"></i>รายละเอียด
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-danger btn-sm"
+                        onclick="removeItem('{{ item.product_id }}')"
+                      >
+                        <i class="fas fa-trash me-1"></i>ลบ
+                      </button>
+                    </td>
+                  </tr>
+                  {% endfor %} {% else %}
+                  <tr>
+                    <td colspan="8" class="text-center py-4">
+                      <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                      <p class="text-muted">
+                        {{ message if message else "รถเข็นของคุณว่างเปล่า" }}
+                      </p>
+                    </td>
+                  </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cart Total and Actions -->
+        {% if cart and cart|length > 0 %}
+        <div class="row mt-4 justify-content-center">
+          <div class="col-md-6 col-lg-4">
+            <div class="card">
+              <div class="card-body text-center">
+                <h3 class="mb-3">
+                  <span class="text-muted">Total: </span>
+                  <span class="text-primary">฿{{ "%.2f"|format(total) }}</span>
+                </h3>
+                <div class="d-grid gap-2">
+                  <a
+                    href="{{ url_for('gallery') }}"
+                    class="btn btn-outline-primary"
+                  >
+                    <i class="fa-solid fa-cart-plus me-2"></i
+                    >ดำเนินการเลือกซื้อต่อไป
+                  </a>
+                  <button
+                    class="btn btn-success"
+                    data-bs-toggle="modal"
+                    data-bs-target="#qrModal"
+                    id="checkoutBtn"
+                  >
+                    <i class="fa-solid fa-credit-card me-2"></i>ชำระเงิน
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Product Detail Modal -->
+<div
+  class="modal fade"
+  id="productDetailModal"
+  tabindex="-1"
+  aria-labelledby="productDetailModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="productDetailModalLabel">
+          <i class="fas fa-info-circle me-2"></i>รายละเอียดสินค้า
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <div class="row">
+          <!-- Left side - Product image -->
+          <div class="col-md-6">
+            <div class="product-image-container">
+              <img
+                id="modalProductImage"
+                src=""
+                alt=""
+                class="img-fluid rounded"
+              />
+            </div>
+          </div>
+
+          <!-- Right side - Product information -->
+          <div class="col-md-6">
+            <h3 id="modalProductName" class="product-title"></h3>
+
+            <div class="product-info-box">
+              <h5><i class="fas fa-file-alt me-2"></i>รายละเอียดสินค้า</h5>
+              <p id="modalProductDetail" class="product-description">
+                กำลังโหลดรายละเอียดสินค้า...
+              </p>
+            </div>
+
+            <div class="product-info-grid">
+              <div class="info-item row mb-3">
+                <div class="col-4">
+                  <span class="info-label"
+                    ><i class="fas fa-tag me-2 text-primary"></i>ราคา:</span
+                  >
+                </div>
+                <div class="col-8">
+                  <span class="info-value text-primary fw-bold fs-5"
+                    >฿<span id="modalProductPrice">0.00</span></span
+                  >
+                </div>
+              </div>
+
+              <div class="info-item row mb-3">
+                <div class="col-4">
+                  <span class="info-label"
+                    ><i class="fas fa-expand me-2 text-info"></i
+                    >อัตราส่วน:</span
+                  >
+                </div>
+                <div class="col-8">
+                  <span class="info-value fw-semibold" id="modalProductSize"
+                    >1:1</span
+                  >
+                </div>
+              </div>
+
+              <div class="info-item row mb-3">
+                <div class="col-4">
+                  <span class="info-label"
+                    ><i class="fas fa-cubes me-2 text-success"></i>ปริมาณ:</span
+                  >
+                </div>
+                <div class="col-8">
+                  <span class="info-value fw-semibold" id="modalProductQuantity"
+                    >1</span
+                  >
+                </div>
+              </div>
+
+              <div class="info-item row mb-3">
+                <div class="col-4">
+                  <span class="info-label"
+                    ><i class="fas fa-calculator me-2 text-warning"></i
+                    >ราคารวม:</span
+                  >
+                </div>
+                <div class="col-8">
+                  <span class="info-value text-danger fw-bold fs-5"
+                    >฿<span id="modalProductTotal">0.00</span></span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QR Payment Modal -->
+<div
+  class="modal fade"
+  id="qrModal"
+  tabindex="-1"
+  aria-labelledby="qrModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="qrModalLabel">
+          <i class="fas fa-qrcode me-2"></i>ชำระเงินผ่าน PromptPay QR
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row">
+          <!-- Left side - QR code -->
+          <div class="col-md-6 text-center">
+            <div class="mb-3">
+              <h6 class="text-muted">ยอดรวมที่ต้องชำระ</h6>
+              <div class="amount-display" id="paymentAmount">฿0.00</div>
+            </div>
+
+            <div id="qrCodeContainer" class="qr-container">
+              <div class="loading">กำลังสร้าง QR Code...</div>
+            </div>
+
+            <div class="qr-info mt-3">
+              <p class="small text-muted">
+                สแกนรหัส QR นี้ด้วยแอพธนาคารที่รองรับ PromptPay
+              </p>
+              <p class="promptpay-id">หมายเลข PromptPay: 0123456789</p>
+            </div>
+          </div>
+
+          <!-- Right side - Upload section -->
+          <div class="col-md-6">
+            <div class="upload-section">
+              <h6 class="text-primary mb-3">
+                <i class="fas fa-upload me-2"></i>อัปโหลดหลักฐานการชำระเงิน
+              </h6>
+              <p class="text-muted small mb-3">
+                โปรดอัปโหลดภาพหน้าจอของการยืนยันการชำระเงิน
+              </p>
+
+              <div id="slipPreview" class="mb-3" style="display: none">
+                <!-- Preview will be inserted here -->
+              </div>
+
+              <div class="mb-3">
+                <input
+                  type="file"
+                  id="slipFile"
+                  accept="image/*"
+                  class="form-control"
+                />
+              </div>
+
+              <div id="uploadStatus" class="mb-3" style="display: none">
+                <!-- Status will be shown here -->
+              </div>
+
+              <button
+                type="button"
+                class="btn btn-outline-success w-100"
+                onclick="submitPayment()"
+              >
+                <i class="fas fa-check me-2"></i>ยืนยันการชำระเงิน
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden total value for JavaScript -->
+<input type="hidden" id="total-value" value="{{ total if total else 0 }}" />
+{% endblock %} {% block extra_js %}
+<script src="{{ url_for('static', filename='js/cart.js') }}"></script>
+{% endblock %}
