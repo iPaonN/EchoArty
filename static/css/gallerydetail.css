@@ -1,0 +1,258 @@
+.product-detail-container {
+  background: linear-gradient(135deg, #e3f2fd, #f5f7fa);
+  min-height: calc(100vh - 200px);
+  padding: 30px 0;
+}
+
+.product-card {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  margin-bottom: 30px;
+}
+
+.product-image {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.product-info h2 {
+  color: #2c3e50;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.form-section {
+  background: #f8f9fa;
+  border-radius: 15px;
+  padding: 25px;
+  margin-top: 20px;
+}
+
+.form-control {
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+  padding: 12px 15px;
+  transition: all 0.3s ease;
+}
+
+.form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.15);
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  border: none;
+  border-radius: 10px;
+  padding: 15px 30px;
+  font-weight: 600;
+  color: white;
+  transition: all 0.3s ease;
+  width: 100%;
+  font-size: 1.1rem;
+  text-transform: none;
+}
+
+.btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+  color: white;
+}
+
+.price-tag {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  color: white;
+  padding: 8px 15px;
+  border-radius: 20px;
+  font-weight: 600;
+  display: inline-block;
+  margin: 10px 0;
+}
+
+.reviews-section {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  padding: 30px;
+  margin-top: 30px;
+}
+
+.rating-summary {
+  text-align: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 15px;
+  margin-bottom: 25px;
+}
+
+.rating-number {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #007bff;
+  margin-bottom: 10px;
+}
+
+.stars {
+  color: #ffc107;
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.rating-bars {
+  margin-top: 20px;
+}
+
+.rating-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.rating-label {
+  width: 30px;
+  text-align: right;
+  margin-right: 10px;
+  color: #6c757d;
+}
+
+.progress {
+  flex: 1;
+  height: 8px;
+  margin: 0 10px;
+  border-radius: 10px;
+  background-color: #e9ecef;
+}
+
+.progress-bar {
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ffc107, #ffb300);
+}
+
+.rating-count {
+  width: 30px;
+  color: #6c757d;
+  font-size: 0.8rem;
+}
+
+.review-item {
+  border-bottom: 1px solid #e9ecef;
+  padding: 20px 0;
+}
+
+.review-item:last-child {
+  border-bottom: none;
+}
+
+.reviewer-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.reviewer-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  margin-right: 15px;
+}
+
+.reviewer-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.review-date {
+  color: #6c757d;
+  font-size: 0.85rem;
+  margin-left: auto;
+}
+
+.review-stars {
+  color: #ffc107;
+  margin-bottom: 10px;
+}
+
+.file-upload-section {
+  border: 2px dashed #007bff;
+  border-radius: 15px;
+  padding: 30px;
+  text-align: center;
+  background: #f8f9ff;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.file-upload-section:hover {
+  background: #e6f3ff;
+  border-color: #0056b3;
+}
+
+.file-upload-icon {
+  font-size: 2rem;
+  color: #007bff;
+  margin-bottom: 15px;
+}
+
+.file-info {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}
+
+.status-badge {
+  background: #e6f7ff;
+  color: #007bff;
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.thai-text {
+  font-family: "Sarabun", "Prompt", sans-serif;
+}
+
+.price-summary {
+  border: 1px solid #e9ecef;
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+}
+
+.form-label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 8px;
+}
+
+.form-label i {
+  color: #007bff;
+}
+
+.input-group .form-control {
+  border-left: 1px solid #ced4da;
+  border-right: 1px solid #ced4da;
+}
+
+.input-group .btn {
+  border-color: #ced4da;
+}
+
+.text-muted.small {
+  font-size: 0.85rem;
+}
