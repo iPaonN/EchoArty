@@ -7,6 +7,7 @@
 - **Styling**: Bootstrap 5.3.0, Custom CSS
 - **Icons**: Font Awesome
 - **Template Engine**: Jinja2
+- **Database**: MariaDB
 
 ## 📋 Prerequisites
 
