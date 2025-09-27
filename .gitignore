@@ -1,1 +1,5 @@
 venv
+.env
+*.toml
+*.pem
+*__pycache__
