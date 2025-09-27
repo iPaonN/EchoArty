@@ -52,6 +52,7 @@ def contact():
     """Contact page route"""
     return render_template('contact.html')
 
+# FOR TESTING PURPOSES: Display all users from the database
 @app.route('/users')
 def users():
     """Users data page route"""
