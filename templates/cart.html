@@ -73,26 +73,32 @@ block extra_css %}
                       ฿{{ "%.2f"|format(item['price'] * item['quantity']) }}
                     </td>
                     <td class="text-center">
-                      <button
-                        type="button"
-                        class="btn btn-info btn-sm me-1"
-                        onclick="showDetailModal(this)"
-                        data-product-name="{{ item['name'] }}"
-                        data-product-image="{{ item['image'] or 'dummy.jpg' }}"
-                        data-product-price="{{ item['price'] }}"
-                        data-product-size="{{ item['size'] or '1:1' }}"
-                        data-product-quantity="{{ item['quantity'] }}"
-                        data-product-id="{{ item['product_id'] }}"
+                      <div
+                        class="d-flex gap-2 justify-content-center flex-nowrap"
                       >
-                        <i class="fas fa-info-circle me-1"></i>รายละเอียด
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-danger btn-sm"
-                        onclick="removeItem('{{ item.product_id }}')"
-                      >
-                        <i class="fas fa-trash me-1"></i>ลบ
-                      </button>
+                        <button
+                          type="button"
+                          class="btn btn-info btn-sm"
+                          onclick="showDetailModal(this)"
+                          data-product-name="{{ item['name'] }}"
+                          data-product-image="{{ item['image'] or 'dummy.jpg' }}"
+                          data-product-price="{{ item['price'] }}"
+                          data-product-size="{{ item['size'] or '1:1' }}"
+                          data-product-quantity="{{ item['quantity'] }}"
+                          data-product-id="{{ item['product_id'] }}"
+                          title="ดูรายละเอียด"
+                        >
+                          <i class="fas fa-info-circle me-1"></i>รายละเอียด
+                        </button>
+                        <button
+                          type="button"
+                          class="btn btn-danger btn-sm"
+                          onclick="removeItem('{{ item.product_id }}')"
+                          title="ลบสินค้า"
+                        >
+                          <i class="fas fa-trash-alt me-1"></i>ลบ
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   {% endfor %} {% else %}

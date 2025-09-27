@@ -43,6 +43,20 @@
   transition: all 0.2s ease;
 }
 
+/* Button group styling for actions */
+.d-flex.gap-2.justify-content-center.flex-nowrap {
+  white-space: nowrap;
+}
+
+.d-flex.gap-2.justify-content-center.flex-nowrap .btn {
+  white-space: nowrap;
+  min-width: fit-content;
+}
+
+.d-flex.gap-2.justify-content-center.flex-nowrap .btn:focus {
+  box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.25);
+}
+
 /* ======= QUANTITY CONTROLS ======= */
 .quantity-controls {
   display: flex;
@@ -197,6 +211,26 @@
 }
 
 /* ======= RESPONSIVE ADJUSTMENTS ======= */
+/* Tablet view */
+@media (max-width: 992px) {
+  .table th,
+  .table td {
+    padding: 10px 6px;
+    font-size: 0.9rem;
+  }
+
+  .cart-item-image {
+    width: 50px;
+    height: 50px;
+  }
+
+  /* Keep button text on tablets */
+  .d-flex.gap-2 .btn {
+    font-size: 0.8rem;
+    padding: 0.375rem 0.5rem;
+  }
+}
+
 @media (max-width: 768px) {
   .cart-item-image {
     width: 40px;
@@ -209,17 +243,46 @@
 
   .table th,
   .table td {
-    padding: 8px 6px;
+    padding: 8px 4px;
+  }
+
+  /* Action buttons column - keep in same row */
+  .table th:last-child,
+  .table td:last-child {
+    min-width: 160px;
+    white-space: nowrap;
+  }
+
+  /* Action buttons styling for mobile - hide text, show only icons */
+  .d-flex.gap-2 .btn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.4rem;
+  }
+
+  .d-flex.gap-2 .btn i {
+    font-size: 0.8rem;
+  }
+
+  /* Hide button text on small screens */
+  .d-flex.gap-2 .btn .me-1 + * {
+    display: none;
   }
 
   .quantity-controls {
-    flex-direction: column;
+    flex-direction: row;
     gap: 0.25rem;
+    min-width: 80px;
+    justify-content: center;
   }
 
-  .btn-sm {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
+  .quantity-controls .btn {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+
+  .quantity-value {
+    font-size: 0.8rem;
+    min-width: 1.5rem;
   }
 
   .product-image-container {
@@ -230,19 +293,78 @@
   .modal-dialog {
     margin: 0.5rem;
   }
+
+  /* Hide less important columns on very small screens */
+  .table th:nth-child(3),
+  .table td:nth-child(3) {
+    display: none; /* Hide base price column */
+  }
+
+  .table th:nth-child(4),
+  .table td:nth-child(4) {
+    display: none; /* Hide ratio column */
+  }
 }
 
 @media (max-width: 576px) {
   .table th {
     font-size: 0.75rem;
+    padding: 6px 2px;
   }
 
-  .btn-sm {
+  .table td {
+    padding: 6px 2px;
+    vertical-align: middle;
+  }
+
+  /* Ensure action buttons stay in one row with smaller width */
+  .table th:last-child,
+  .table td:last-child {
+    min-width: 120px;
+    text-align: center;
+  }
+
+  .table td:last-child {
+    white-space: nowrap;
+  }
+
+  .d-flex.gap-2 {
+    gap: 0.25rem !important;
+  }
+
+  .d-flex.gap-2 .btn {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.3rem;
+    border-radius: 0.25rem;
+  }
+
+  .d-flex.gap-2 .btn i {
     font-size: 0.7rem;
-    padding: 0.2rem 0.4rem;
+  }
+
+  /* Hide all text on very small screens, show only icons */
+  .d-flex.gap-2 .btn * + * {
+    display: none !important;
   }
 
   .quantity-value {
-    font-size: 0.875rem;
+    font-size: 0.8rem;
+    min-width: 1.2rem;
+  }
+
+  .quantity-controls .btn {
+    padding: 0.15rem 0.3rem;
+    font-size: 0.65rem;
+  }
+
+  /* Stack less important info */
+  .table th:nth-child(6),
+  .table td:nth-child(6) {
+    display: none; /* Hide unit price, show only total */
+  }
+
+  /* Make cart title smaller */
+  .cart-container h1 {
+    font-size: 1.5rem;
   }
 }
