@@ -11,7 +11,7 @@ block extra_css %}
     <h2 class="register-title">Register</h2>
 
     <div class="register-notification">
-      Enter your info to place your customize order
+      Register today! To place your customized order.
     </div>
 
     <form
@@ -72,6 +72,133 @@ block extra_css %}
         <label class="form-check-label" for="showPassword">
           Show password
         </label>
+      </div>
+
+      <div class="mb-3">
+        <input
+          type="text"
+          class="form-control"
+          name="firstname"
+          placeholder="First Name"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <input
+          type="text"
+          class="form-control"
+          name="lastname"
+          placeholder="Last Name"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <input
+          type="text"
+          class="form-control"
+          name="street_address"
+          placeholder="Street Address"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <select
+          class="form-control"
+          name="city"
+          required
+        >
+          <option value="" disabled selected>Select Province/City</option>
+          <option value="กรุงเทพมหานคร">กรุงเทพมหานคร (Bangkok)</option>
+          <option value="กระบี่">กระบี่ (Krabi)</option>
+          <option value="กาญจนบุรี">กาญจนบุรี (Kanchanaburi)</option>
+          <option value="กาฬสินธุ์">กาฬสินธุ์ (Kalasin)</option>
+          <option value="กำแพงเพชร">กำแพงเพชร (Kamphaeng Phet)</option>
+          <option value="ขอนแก่น">ขอนแก่น (Khon Kaen)</option>
+          <option value="จันทบุรี">จันทบุรี (Chanthaburi)</option>
+          <option value="ฉะเชิงเทรา">ฉะเชิงเทรา (Chachoengsao)</option>
+          <option value="ชลบุรี">ชลบุรี (Chonburi)</option>
+          <option value="ชัยนาท">ชัยนาท (Chai Nat)</option>
+          <option value="ชัยภูมิ">ชัยภูมิ (Chaiyaphum)</option>
+          <option value="ชุมพร">ชุมพร (Chumphon)</option>
+          <option value="เชียงราย">เชียงราย (Chiang Rai)</option>
+          <option value="เชียงใหม่">เชียงใหม่ (Chiang Mai)</option>
+          <option value="ตรัง">ตรัง (Trang)</option>
+          <option value="ตราด">ตราด (Trat)</option>
+          <option value="ตาก">ตาก (Tak)</option>
+          <option value="นครนายก">นครนายก (Nakhon Nayok)</option>
+          <option value="นครปฐม">นครปฐม (Nakhon Pathom)</option>
+          <option value="นครพนม">นครพนม (Nakhon Phanom)</option>
+          <option value="นครราชสีมา">นครราชสีมา (Nakhon Ratchasima)</option>
+          <option value="นครศรีธรรมราช">นครศรีธรรมราช (Nakhon Si Thammarat)</option>
+          <option value="นครสวรรค์">นครสวรรค์ (Nakhon Sawan)</option>
+          <option value="นนทบุรี">นนทบุรี (Nonthaburi)</option>
+          <option value="นราธิวาส">นราธิวาส (Narathiwat)</option>
+          <option value="น่าน">น่าน (Nan)</option>
+          <option value="บึงกาฬ">บึงกาฬ (Bueng Kan)</option>
+          <option value="บุรีรัมย์">บุรีรัมย์ (Buriram)</option>
+          <option value="ปทุมธานี">ปทุมธานี (Pathum Thani)</option>
+          <option value="ประจวบคีรีขันธ์">ประจวบคีรีขันธ์ (Prachuap Khiri Khan)</option>
+          <option value="ปราจีนบุรี">ปราจีนบุรี (Prachin Buri)</option>
+          <option value="ปัตตานี">ปัตตานี (Pattani)</option>
+          <option value="พระนครศรีอยุธยา">พระนครศรีอยุธยา (Phra Nakhon Si Ayutthaya)</option>
+          <option value="พังงา">พังงา (Phang Nga)</option>
+          <option value="พัทลุง">พัทลุง (Phatthalung)</option>
+          <option value="พิจิตร">พิจิตร (Phichit)</option>
+          <option value="พิษณุโลก">พิษณุโลก (Phitsanulok)</option>
+          <option value="เพชรบุรี">เพชรบุรี (Phetchaburi)</option>
+          <option value="เพชรบูรณ์">เพชรบูรณ์ (Phetchabun)</option>
+          <option value="แพร่">แพร่ (Phrae)</option>
+          <option value="พะเยา">พะเยา (Phayao)</option>
+          <option value="ภูเก็ต">ภูเก็ต (Phuket)</option>
+          <option value="มหาสารคาม">มหาสารคาม (Maha Sarakham)</option>
+          <option value="มุกดาหาร">มุกดาหาร (Mukdahan)</option>
+          <option value="แม่ฮ่องสอน">แม่ฮ่องสอน (Mae Hong Son)</option>
+          <option value="ยโสธร">ยโสธร (Yasothon)</option>
+          <option value="ยะลา">ยะลา (Yala)</option>
+          <option value="ร้อยเอ็ด">ร้อยเอ็ด (Roi Et)</option>
+          <option value="ระนอง">ระนอง (Ranong)</option>
+          <option value="ระยอง">ระยอง (Rayong)</option>
+          <option value="ราชบุรี">ราชบุรี (Ratchaburi)</option>
+          <option value="ลพบุรี">ลพบุรี (Lopburi)</option>
+          <option value="ลำปาง">ลำปาง (Lampang)</option>
+          <option value="ลำพูน">ลำพูน (Lamphun)</option>
+          <option value="เลย">เลย (Loei)</option>
+          <option value="ศรีสะเกษ">ศรีสะเกษ (Sisaket)</option>
+          <option value="สกลนคร">สกลนคร (Sakon Nakhon)</option>
+          <option value="สงขลา">สงขลา (Songkhla)</option>
+          <option value="สตูล">สตูล (Satun)</option>
+          <option value="สมุทรปราการ">สมุทรปราการ (Samut Prakan)</option>
+          <option value="สมุทรสงคราม">สมุทรสงคราม (Samut Songkhram)</option>
+          <option value="สมุทรสาคร">สมุทรสาคร (Samut Sakhon)</option>
+          <option value="สระแก้ว">สระแก้ว (Sa Kaeo)</option>
+          <option value="สระบุรี">สระบุรี (Saraburi)</option>
+          <option value="สิงห์บุรี">สิงห์บุรี (Sing Buri)</option>
+          <option value="สุโขทัย">สุโขทัย (Sukhothai)</option>
+          <option value="สุพรรณบุรี">สุพรรณบุรี (Suphan Buri)</option>
+          <option value="สุราษฎร์ธานี">สุราษฎร์ธานี (Surat Thani)</option>
+          <option value="สุรินทร์">สุรินทร์ (Surin)</option>
+          <option value="หนองคาย">หนองคาย (Nong Khai)</option>
+          <option value="หนองบัวลำภู">หนองบัวลำภู (Nong Bua Lam Phu)</option>
+          <option value="อ่างทอง">อ่างทอง (Ang Thong)</option>
+          <option value="อำนาจเจริญ">อำนาจเจริญ (Amnat Charoen)</option>
+          <option value="อุดรธานี">อุดรธานี (Udon Thani)</option>
+          <option value="อุตรดิตถ์">อุตรดิตถ์ (Uttaradit)</option>
+          <option value="อุทัยธานี">อุทัยธานี (Uthai Thani)</option>
+          <option value="อุบลราชธานี">อุบลราชธานี (Ubon Ratchathani)</option>
+        </select>
+      </div>
+
+      <div class="mb-3">
+        <input
+          type="text"
+          class="form-control"
+          name="postal_code"
+          placeholder="Postal Code"
+          required
+        />
       </div>
 
       <div class="mb-3">
