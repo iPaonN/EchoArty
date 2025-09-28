@@ -1,37 +1,15 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
-from models import db, User
-import os
-from dotenv import load_dotenv
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+import requests
+import json
 
-# Load environment variables from .env file
-load_dotenv()
-
-
-# Create Flask app instance
+# Create Flask app instance - Frontend only
 app = Flask(__name__)
 
-# Set up database
-db_user = os.getenv('DB_USER')
-db_password = os.getenv('DB_PASSWORD')
-db_host = os.getenv('DB_HOST')
-db_port = os.getenv('DB_PORT')
-db_name = os.getenv('DB_NAME')
-
-primary_host = db_host.split(',')[0] if db_host else ''
-
-database_uri = (
-    f"mysql+pymysql://{db_user}:{db_password}@{primary_host}:{db_port}/{db_name}"
-    "?ssl_verify_cert=true"
-)
-
 # Configuration
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or database_uri
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = 'your-secret-key-here'
 
-# Initialize DB
-db.init_app(app)
-
+# API Backend URL
+API_BASE_URL = 'http://localhost:5000/api'
 
 @app.route('/')
 def home():
@@ -60,28 +38,42 @@ def contact():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page route"""
+    """Login page route - consumes API"""
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
         
-        # Basic validation
         if not email or not password:
             flash('Please fill in all fields', 'error')
             return render_template('login.html')
         
-        # TODO: Add your authentication logic here
-        # For now, we'll just check for a demo user
-        if email == 'demo@echoarty.com' and password == 'demo123':
-            session['user_email'] = email
-            session['logged_in'] = True
-            flash('Login successful!', 'success')
-            return redirect(url_for('home'))
-        else:
-            flash('Invalid email or password', 'error')
-            return render_template('login.html')
+        try:
+            # Call API for authentication
+            response = requests.post(f'{API_BASE_URL}/login', json={
+                'email': email,
+                'password': password
+            })
+            
+            result = response.json()
+            
+            if result.get('success'):
+                # Store user info in session
+                user_data = result.get('data', {})
+                session['user_id'] = user_data.get('user_id')
+                session['username'] = user_data.get('username')
+                session['email'] = user_data.get('email')
+                session['logged_in'] = True
+                
+                flash('Login successful!', 'success')
+                return redirect(url_for('home'))
+            else:
+                flash(result.get('message', 'Login failed'), 'error')
+                
+        except requests.exceptions.RequestException:
+            flash('Unable to connect to server. Please try again later.', 'error')
+        except Exception as e:
+            flash('An error occurred. Please try again.', 'error')
     
-    # GET request - show the login form
     return render_template('login.html')
 
 @app.route('/logout')
@@ -93,47 +85,74 @@ def logout():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """Register page route"""
+    """Register page route - consumes API"""
     if request.method == 'POST':
-        username = request.form.get('username')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
-        phone = request.form.get('phone')
+        # Get form data
+        form_data = {
+            'username': request.form.get('username'),
+            'email': request.form.get('email'),
+            'password': request.form.get('password'),
+            'confirm_password': request.form.get('confirm_password'),
+            'firstname': request.form.get('firstname'),
+            'lastname': request.form.get('lastname'),
+            'street_address': request.form.get('street_address', ''),
+            'city': request.form.get('city'),
+            'postal_code': request.form.get('postal_code', ''),
+            'telephone': request.form.get('phone')
+        }
         
         # Basic validation
-        if not all([username, email, password, confirm_password, phone]):
-            flash('Please fill in all fields', 'error')
+        required_fields = ['username', 'email', 'password', 'confirm_password', 'firstname', 'lastname', 'city', 'telephone']
+        if not all(form_data.get(field) for field in required_fields):
+            flash('Please fill in all required fields', 'error')
             return render_template('register.html')
         
-        # Password confirmation check
-        if password != confirm_password:
+        # Password confirmation
+        if form_data['password'] != form_data['confirm_password']:
             flash('Passwords do not match', 'error')
             return render_template('register.html')
         
-        # Password strength check
-        if len(password) < 6:
-            flash('Password must be at least 6 characters long', 'error')
-            return render_template('register.html')
+        # Prepare data for API (remove confirm_password)
+        api_data = {k: v for k, v in form_data.items() if k != 'confirm_password'}
         
-        # Email format validation (basic)
-        if '@' not in email or '.' not in email.split('@')[-1]:
-            flash('Please enter a valid email address', 'error')
-            return render_template('register.html')
-        
-        # TODO: Add database logic to save user
-        # For demo purposes, we'll just simulate successful registration
-        # Check if email already exists (demo check)
-        if email == 'demo@echoarty.com':
-            flash('Email already exists. Please use a different email.', 'error')
-            return render_template('register.html')
-        
-        # Simulate successful registration
-        flash('Registration successful! You can now login.', 'success')
-        return redirect(url_for('login'))
+        try:
+            # Call API for registration
+            response = requests.post(f'{API_BASE_URL}/register', json=api_data)
+            result = response.json()
+            
+            if result.get('success'):
+                flash('Registration successful! You can now login.', 'success')
+                return redirect(url_for('login'))
+            else:
+                flash(result.get('message', 'Registration failed'), 'error')
+                
+        except requests.exceptions.RequestException:
+            flash('Unable to connect to server. Please try again later.', 'error')
+        except Exception as e:
+            flash('An error occurred during registration. Please try again.', 'error')
     
-    # GET request - show the registration form
     return render_template('register.html')
+
+@app.route('/users')
+def users():
+    """Users page route - consumes API"""
+    try:
+        response = requests.get(f'{API_BASE_URL}/users')
+        result = response.json()
+        
+        if result.get('success'):
+            users_data = result.get('data', [])
+            return render_template('users.html', users=users_data, count=result.get('count', 0))
+        else:
+            flash('Unable to load users data', 'error')
+            return render_template('users.html', users=[], count=0)
+            
+    except requests.exceptions.RequestException:
+        flash('Unable to connect to server', 'error')
+        return render_template('users.html', users=[], count=0)
+    except Exception as e:
+        flash('An error occurred while loading users', 'error')
+        return render_template('users.html', users=[], count=0)
 
 @app.route('/tracking', methods=['GET', 'POST'])
 def tracking():
@@ -501,67 +520,6 @@ def packing():
     
     return render_template('packing.html', orders=sample_orders)
 
-@app.route('/api/update-order-status', methods=['POST'])
-def update_order_status():
-    """API route to update order status"""
-    try:
-        data = request.get_json()
-        order_id = data.get('orderId')
-        status = data.get('status')
-        
-        if not order_id or not status:
-            return jsonify({
-                'success': False,
-                'message': 'Missing orderId or status'
-            }), 400
-        
-        # Convert status to number
-        status_map = {
-            'Waiting for packing': 2,
-            'Packing': 3,
-            'Success': 4,
-            'Failed': 5
-        }
-        
-        status_code = status_map.get(status)
-        if status_code is None:
-            return jsonify({
-                'success': False,
-                'message': 'Invalid status'
-            }), 400
-        
-        # TODO: Add actual database update logic here
-        # For demo purposes, just return success
-        print(f"Updating order {order_id} to status {status} ({status_code})")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Order status updated successfully',
-            'data': {
-                'orderId': order_id,
-                'status': status,
-                'statusCode': status_code
-            }
-        })
-        
-    except Exception as e:
-        print(f"Error updating order status: {e}")
-        return jsonify({
-            'success': False,
-            'message': 'Internal server error'
-        }), 500
-
-# FOR TESTING PURPOSES: Display all users from the database by 112
-@app.route('/users')
-def users():
-    """Users data page route"""
-    try:
-        all_users = User.query.all()
-        return render_template('users.html', users=all_users)
-    except Exception as e:
-        app.logger.error(f"Database error: {e}")
-        return render_template('500.html'), 500
-
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
@@ -582,5 +540,9 @@ def internal_error(error):
         return '<h1>500 - Internal Server Error</h1><p>Something went wrong on our server.</p><a href="/">Go Home</a>', 500
 
 if __name__ == '__main__':
-    # Run the app in debug mode for development
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    print("🎨 Starting EchoArty Frontend Server...")
+    print("📝 This server handles web templates and calls API for data")
+    print("🔗 Make sure API server (api_app.py) is running on port 5000")
+    print("🌐 Frontend will be available at: http://localhost:8080")
+    
+    app.run(debug=True, host='0.0.0.0', port=8080)

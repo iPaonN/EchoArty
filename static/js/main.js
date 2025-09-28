@@ -2,10 +2,12 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize tooltips if using Bootstrap
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
+    if (typeof bootstrap !== 'undefined') {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
 
     // Smooth scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -30,50 +32,62 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Form validation for contact form
-    const contactForm = document.querySelector('form');
+    // Form validation for contact form - ONLY if contact form exists
+    const contactForm = document.querySelector('#contact-form');
     if (contactForm) {
         contactForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // Basic form validation
-            const name = document.getElementById('name').value.trim();
-            const email = document.getElementById('email').value.trim();
-            const subject = document.getElementById('subject').value.trim();
-            const message = document.getElementById('message').value.trim();
+            // Check if elements exist before accessing their values
+            const nameEl = document.getElementById('name');
+            const emailEl = document.getElementById('email');
+            const subjectEl = document.getElementById('subject');
+            const messageEl = document.getElementById('message');
             
-            if (name && email && subject && message) {
-                // Show success message (you can replace this with actual form submission)
-                alert('Thank you for your message! We will get back to you soon.');
-                contactForm.reset();
+            // Only proceed if all elements exist
+            if (nameEl && emailEl && subjectEl && messageEl) {
+                const name = nameEl.value.trim();
+                const email = emailEl.value.trim();
+                const subject = subjectEl.value.trim();
+                const message = messageEl.value.trim();
+                
+                if (name && email && subject && message) {
+                    // Show success message
+                    showNotification('Thank you for your message! We will get back to you soon.', 'success');
+                    contactForm.reset();
+                } else {
+                    showNotification('Please fill in all required fields.', 'warning');
+                }
             } else {
-                alert('Please fill in all required fields.');
+                console.warn('Contact form elements not found - this is normal on non-contact pages');
             }
         });
     }
 
     // Add fade-in animation to cards
     const cards = document.querySelectorAll('.card');
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
+    if (cards.length > 0) {
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
 
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        cards.forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(card);
         });
-    }, observerOptions);
-
-    cards.forEach(card => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        observer.observe(card);
-    });
+    }
 });
 
 // Utility function for showing notifications
