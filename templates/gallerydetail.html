@@ -5,7 +5,11 @@ EchoArty{% endblock %} {% block extra_css %}
   href="{{ url_for('static', filename='css/gallerydetail.css') }}"
 />
 {% endblock %} {% block content %}
-<div class="product-detail-container thai-text">
+<div class="product-detail-container thai-text"
+  {% if product %}
+  data-product-price="{{ product.price }}"
+  {% endif %}
+>
   <div class="container">
     <!-- Back to Gallery Button -->
     <div class="row mb-3">
@@ -26,15 +30,15 @@ EchoArty{% endblock %} {% block extra_css %}
           <div class="row">
             <div class="col-md-6">
               <img
-                src="https://via.placeholder.com/300x400/333/fff?text=Batman+Figure"
+                src="{{ url_for('static', filename='images/products/' + product.image) }}"
                 alt="Figure Batman"
                 class="product-image"
               />
             </div>
             <div class="col-md-6 product-info">
-              <h2>Figure Batman</h2>
-              <div class="price-tag">ราคา: ฿200.00</div>
-              <p class="text-muted">รูปแบบ Batman คุณภาพสูง สำหรับคอลเลกชั่น</p>
+              <h2>{{ product.name }}</h2>
+              <div class="price-tag">ราคา: ฿{{ "%.2f"|format(product.price) }}</div>
+              <p class="text-muted">{{ product.description or 'No description available' }}</p>
 
               <!-- Form Section -->
               <div class="form-section">
@@ -106,7 +110,7 @@ EchoArty{% endblock %} {% block extra_css %}
                       </div>
                       <div class="col-5 d-flex align-items-center">
                         <small class="text-muted ms-2">
-                          อัตราส่วนเดิม 1:1
+                          อัตราส่วนเดิม {{ product.size }}
                         </small>
                       </div>
                     </div>
@@ -142,12 +146,6 @@ EchoArty{% endblock %} {% block extra_css %}
                             +
                           </button>
                         </div>
-                      </div>
-                      <div class="col-6 d-flex align-items-center">
-                        <small class="text-muted">
-                          <i class="fas fa-info-circle me-1"></i>มีสินค้า: 10
-                          ชิ้น
-                        </small>
                       </div>
                     </div>
                   </div>

@@ -69,6 +69,7 @@ block extra_css %}
 
         <!-- Gallery Grid -->
         <div class="row">
+          {% if products %} {% for product in products %}
           <!-- Featured Figure Batman -->
           <div class="col-md-4 col-lg-3 mb-4">
             <div class="card gallery-card h-100 featured-item">
@@ -76,19 +77,19 @@ block extra_css %}
                 <i class="fas fa-star me-1"></i>Featured
               </div>
               <img
-                src="https://via.placeholder.com/300x200/333/fff?text=Batman+Figure"
+                src="{{ url_for('static', filename='images/products/' + product.image) }}"
                 class="card-img-top"
                 alt="Figure Batman"
                 style="height: 200px; object-fit: cover"
               />
               <div class="card-body d-flex flex-column">
-                <h6 class="card-title">Figure Batman</h6>
-                <p class="card-text text-muted small">Premium Collection</p>
+                <h6 class="card-title">{{ product.name }}</h6>
+                <p class="card-text text-muted small">{{ product.description or 'No description available' }}</p>
                 <div class="mt-auto">
                   <div
                     class="d-flex justify-content-between align-items-center mb-2"
                   >
-                    <span class="price-badge">฿200.00</span>
+                    <span class="price-badge">฿{{ "%.2f"|format(product.price) }}</span>
                     <div class="rating-stars text-warning">
                       <i class="fas fa-star"></i>
                       <i class="fas fa-star"></i>
@@ -99,7 +100,7 @@ block extra_css %}
                     </div>
                   </div>
                   <a
-                    href="{{ url_for('gallery_detail') if url_for else '/gallery/detail' }}"
+                    href="{{ url_for('gallery_detail', p_id=product.p_id) }}"
                     class="btn btn-primary btn-sm w-100"
                   >
                     <i class="fas fa-eye me-2"></i>View Details
@@ -107,46 +108,9 @@ block extra_css %}
                 </div>
               </div>
             </div>
+            {% endfor %} {% else %}
+            {% endif %}
           </div>
-
-          <!-- Other placeholder art items -->
-          {% for i in range(2, 9) %}
-          <div class="col-md-4 col-lg-3 mb-4">
-            <div class="card gallery-card h-100">
-              <div
-                class="card-img-top bg-light d-flex align-items-center justify-content-center"
-                style="height: 200px"
-              >
-                <i class="fas fa-image fa-3x text-muted"></i>
-              </div>
-              <div class="card-body d-flex flex-column">
-                <h6 class="card-title">Artwork {{ i }}</h6>
-                <p class="card-text text-muted small">Artist Name</p>
-                <div class="mt-auto">
-                  <div
-                    class="d-flex justify-content-between align-items-center mb-2"
-                  >
-                    <span class="price-badge">฿{{ (i * 50) + 100 }}.00</span>
-                    <div class="rating-stars text-warning">
-                      {% for star in range(1, 6) %} {% if star <= (5 - (i % 3))
-                      %}
-                      <i class="fas fa-star"></i>
-                      {% else %}
-                      <i class="far fa-star"></i>
-                      {% endif %} {% endfor %}
-                      <small class="text-muted ms-1"
-                        >({{ (i * 7) + 10 }})</small
-                      >
-                    </div>
-                  </div>
-                  <button class="btn btn-outline-primary btn-sm w-100">
-                    <i class="fas fa-eye me-2"></i>View Details
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          {% endfor %}
         </div>
       </div>
     </div>
