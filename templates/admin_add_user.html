@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - เพิ่มผู้ใช้ทดสอบ - EchoArty{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <!-- Header -->
+      <div class="card shadow-lg border-0 mb-4">
+        <div class="card-header bg-danger text-white">
+          <h3 class="mb-0">
+            <i class="fas fa-user-shield me-2"></i>Admin Panel - เพิ่มผู้ใช้ทดสอบ
+          </h3>
+          <small>⚠️ สำหรับทดสอบระบบเท่านั้น (God Only)</small>
+        </div>
+      </div>
+
+      <!-- Add User Form -->
+      <div class="card shadow-lg border-0">
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('admin_add_user') }}">
+            
+            <!-- Basic Info Section -->
+            <h5 class="text-primary mb-3">
+              <i class="fas fa-info-circle me-2"></i>ข้อมูลพื้นฐาน
+            </h5>
+            
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="username" class="form-label">
+                  <i class="fas fa-user me-1"></i>Username <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="username"
+                  name="username"
+                  placeholder="username123"
+                  required
+                />
+              </div>
+              <div class="col-md-6">
+                <label for="email" class="form-label">
+                  <i class="fas fa-envelope me-1"></i>Email <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="email"
+                  name="email"
+                  placeholder="user@example.com"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="firstname" class="form-label">
+                  <i class="fas fa-id-card me-1"></i>ชื่อจริง <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="firstname"
+                  name="firstname"
+                  placeholder="สมชาย"
+                  required
+                />
+              </div>
+              <div class="col-md-6">
+                <label for="lastname" class="form-label">
+                  <i class="fas fa-id-card me-1"></i>นามสกุล <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="lastname"
+                  name="lastname"
+                  placeholder="ใจดี"
+                  required
+                />
+              </div>
+            </div>
+
+            <!-- Account Section -->
+            <hr class="my-4" />
+            <h5 class="text-primary mb-3">
+              <i class="fas fa-lock me-2"></i>ข้อมูลบัญชี
+            </h5>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="password" class="form-label">
+                  <i class="fas fa-key me-1"></i>รหัสผ่าน <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="password"
+                  name="password"
+                  placeholder="********"
+                  required
+                  minlength="6"
+                />
+                <small class="text-muted">อย่างน้อย 6 ตัวอักษร</small>
+              </div>
+              <div class="col-md-6">
+                <label for="role_id" class="form-label">
+                  <i class="fas fa-user-tag me-1"></i>สิทธิ์ผู้ใช้ <span class="text-danger">*</span>
+                </label>
+                <select class="form-select" id="role_id" name="role_id" required>
+                  <option value="3" selected>{{ roles[3] }}</option>
+                  <option value="2">{{ roles[2] }}</option>
+                  <option value="1">{{ roles[1] }}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Contact Section -->
+            <hr class="my-4" />
+            <h5 class="text-primary mb-3">
+              <i class="fas fa-address-book me-2"></i>ข้อมูลติดต่อ
+            </h5>
+
+            <div class="mb-3">
+              <label for="telephone" class="form-label">
+                <i class="fas fa-phone me-1"></i>เบอร์โทรศัพท์ <span class="text-danger">*</span>
+              </label>
+              <input
+                type="tel"
+                class="form-control"
+                id="telephone"
+                name="telephone"
+                placeholder="081-234-5678"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label for="street_address" class="form-label">
+                <i class="fas fa-map-marker-alt me-1"></i>ที่อยู่
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                id="street_address"
+                name="street_address"
+                placeholder="123 ถนนสุขุมวิท"
+              />
+            </div>
+
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label for="city" class="form-label">
+                  <i class="fas fa-city me-1"></i>เมือง
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="city"
+                  name="city"
+                  placeholder="Bangkok"
+                  value="Bangkok"
+                />
+              </div>
+              <div class="col-md-6">
+                <label for="postal_code" class="form-label">
+                  <i class="fas fa-mail-bulk me-1"></i>รหัสไปรษณีย์
+                </label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="postal_code"
+                  name="postal_code"
+                  placeholder="10000"
+                  value="10000"
+                />
+              </div>
+            </div>
+
+            <!-- Buttons -->
+            <hr class="my-4" />
+            <div class="d-flex justify-content-between">
+              <a href="{{ url_for('users') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>กลับไปหน้ารายชื่อผู้ใช้
+              </a>
+              <button type="submit" class="btn btn-danger">
+                <i class="fas fa-user-plus me-2"></i>เพิ่มผู้ใช้ทดสอบ
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Quick Test Users Section -->
+      <div class="card shadow-lg border-0 mt-4">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">
+            <i class="fas fa-lightbulb me-2"></i>ตัวอย่างผู้ใช้สำหรับทดสอบ
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="card border-warning mb-3">
+                <div class="card-header bg-warning text-dark">
+                  <strong>👑 God User</strong>
+                </div>
+                <div class="card-body small">
+                  <p class="mb-1"><strong>Username:</strong> admin</p>
+                  <p class="mb-1"><strong>Email:</strong> admin@test.com</p>
+                  <p class="mb-1"><strong>Password:</strong> admin123</p>
+                  <p class="mb-0"><strong>Role:</strong> God (1)</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border-primary mb-3">
+                <div class="card-header bg-primary text-white">
+                  <strong>👨‍💼 Staff User</strong>
+                </div>
+                <div class="card-body small">
+                  <p class="mb-1"><strong>Username:</strong> staff01</p>
+                  <p class="mb-1"><strong>Email:</strong> staff@test.com</p>
+                  <p class="mb-1"><strong>Password:</strong> staff123</p>
+                  <p class="mb-0"><strong>Role:</strong> Staff (2)</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border-success mb-3">
+                <div class="card-header bg-success text-white">
+                  <strong>👤 Customer User</strong>
+                </div>
+                <div class="card-body small">
+                  <p class="mb-1"><strong>Username:</strong> customer01</p>
+                  <p class="mb-1"><strong>Email:</strong> customer@test.com</p>
+                  <p class="mb-1"><strong>Password:</strong> customer123</p>
+                  <p class="mb-0"><strong>Role:</strong> Customer (3)</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  .card {
+    border-radius: 15px;
+  }
+  .card-header {
+    border-radius: 15px 15px 0 0 !important;
+  }
+  .form-control, .form-select {
+    border-radius: 8px;
+  }
+  .btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+  }
+</style>
+{% endblock %}

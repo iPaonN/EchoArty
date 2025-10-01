@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from models import db, User, UserInfo, Role
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import or_
 from datetime import datetime
 import os
 from dotenv import load_dotenv
@@ -175,37 +176,74 @@ def api_login():
                 'message': 'No data provided'
             }), 400
         
-        if not data.get('email') or not data.get('password'):
+        # รับทั้ง email หรือ username
+        email_value = data.get('email')
+        username_value = data.get('username')
+        email_or_username = email_value or username_value
+        password = data.get('password')
+        
+        # Debug log
+        print(f"🔍 API DEBUG - Received: email={email_value}, username={username_value}, password={'***' if password else None}")
+        app.logger.info(f"Login attempt - email/username: {email_or_username}")
+        
+        if not email_or_username or not password:
             return jsonify({
                 'success': False,
-                'message': 'Email and password required'
+                'message': 'Email/Username and password required'
             }), 400
         
-        user = User.query.filter_by(email=data['email']).first()
+        # ค้นหา user ด้วย email หรือ username
+        user = User.query.filter(
+            or_(User.email == email_or_username, User.username == email_or_username)
+        ).first()
         
-        if user and check_password_hash(user.password, data['password']):
-            user_info = UserInfo.query.filter_by(u_id=user.u_id).first()
-            
-            return jsonify({
-                'success': True,
-                'message': 'Login successful',
-                'data': {
-                    'user_id': user.u_id,
-                    'username': user.username,
-                    'email': user.email,
-                    'role_id': user.role_id,
-                    'user_info': {
-                        'firstname': user_info.firstname if user_info else None,
-                        'lastname': user_info.lastname if user_info else None,
-                        'city': user_info.city if user_info else None,
-                        'telephone': user_info.telephone if user_info else None
-                    } if user_info else None
-                }
-            }), 200
+        # Debug log
+        if user:
+            print(f"✅ User found: username={user.username}, email={user.email}, role={user.role_id}")
+            app.logger.info(f"User found: {user.username} (email: {user.email})")
         else:
+            print(f"❌ User not found with: {email_or_username}")
+            print(f"🔍 Searching for users with username or email matching: {email_or_username}")
+            # แสดง users ทั้งหมดเพื่อ debug
+            all_users = User.query.limit(5).all()
+            print(f"📋 Sample users in DB: {[(u.username, u.email) for u in all_users]}")
+            app.logger.warning(f"User not found with: {email_or_username}")
+        
+        if user:
+            # ตรวจสอบ password
+            password_correct = check_password_hash(user.password, password)
+            print(f"🔐 Password check: {'✅ Correct' if password_correct else '❌ Wrong'}")
+            
+            if password_correct:
+                user_info = UserInfo.query.filter_by(u_id=user.u_id).first()
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Login successful',
+                    'data': {
+                        'user_id': user.u_id,
+                        'username': user.username,
+                        'email': user.email,
+                        'role_id': user.role_id,
+                        'user_info': {
+                            'firstname': user_info.firstname if user_info else None,
+                            'lastname': user_info.lastname if user_info else None,
+                            'city': user_info.city if user_info else None,
+                            'telephone': user_info.telephone if user_info else None
+                        } if user_info else None
+                    }
+                }), 200
+            else:
+                print(f"❌ Password mismatch for user: {user.username}")
+                return jsonify({
+                    'success': False,
+                    'message': 'Invalid credentials - Wrong password'
+                }), 401
+        else:
+            print(f"❌ No user found")
             return jsonify({
                 'success': False,
-                'message': 'Invalid credentials'
+                'message': 'Invalid credentials - User not found'
             }), 401
             
     except Exception as e:

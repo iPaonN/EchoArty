@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
+from functools import wraps
 import requests
 import json
 
@@ -6,88 +7,236 @@ import json
 app = Flask(__name__)
 
 # Configuration
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = 'your-secret-key-here-change-in-production'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
 
 # API Backend URL
 API_BASE_URL = 'http://localhost:5000/api'
 
+ROLES = {
+    1: 'god',       # ผู้ดูแลระบบสูงสุด - เข้าถึงได้ทุกอย่าง
+    2: 'staff',     # พนักงาน - จัดการสินค้า, แพ็คของ
+    3: 'customer'   # ลูกค้า - ซื้อของ, ดูออเดอร์
+}
+
+ROLE_NAMES_TH = {
+    1: 'ผู้ดูแลระบบ (God)',
+    2: 'พนักงาน (Staff)',
+    3: 'ลูกค้า (Customer)'
+}
+
+# ===== AUTHORIZATION DECORATORS =====
+
+def login_required(f):
+    """
+    Decorator: ตรวจสอบว่าผู้ใช้ล็อกอินแล้วหรือไม่
+    ใช้กับหน้าที่ต้องล็อกอินก่อนเข้าใช้งาน
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            flash('⚠️ กรุณาเข้าสู่ระบบก่อนเข้าใช้งาน', 'warning')
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def role_required(*allowed_roles):
+    """
+    Decorator: ตรวจสอบสิทธิ์การเข้าถึงตามบทบาท
+    
+    Usage:
+        @role_required('god', 'staff')
+        def manage_products():
+            ...
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not session.get('logged_in'):
+                flash('⚠️ กรุณาเข้าสู่ระบบก่อนเข้าใช้งาน', 'warning')
+                return redirect(url_for('login', next=request.url))
+            
+            user_role_id = session.get('role_id')
+            user_role = ROLES.get(user_role_id, 'unknown')
+            
+            if user_role not in allowed_roles:
+                allowed_names = [ROLE_NAMES_TH.get(k, v) for k, v in ROLES.items() if v in allowed_roles]
+                flash(f'❌ คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (ต้องการสิทธิ์: {", ".join(allowed_names)})', 'error')
+                return redirect(url_for('access_denied'))
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+def god_only(f):
+    """เฉพาะ God เท่านั้น"""
+    return role_required('god')(f)
+
+def staff_or_above(f):
+    """พนักงานหรือ God"""
+    return role_required('god', 'staff')(f)
+
+def customer_or_above(f):
+    """ลูกค้าขึ้นไป (ทุกคนที่ล็อกอินแล้ว)"""
+    return role_required('god', 'staff', 'customer')(f)
+
+
+# ===== HELPER FUNCTIONS =====
+
+def get_user_role_name():
+    """ดึงชื่อบทบาทผู้ใช้ปัจจุบัน (ภาษาไทย)"""
+    role_id = session.get('role_id')
+    return ROLE_NAMES_TH.get(role_id, 'ไม่ทราบสิทธิ์')
+
+def check_user_permissions():
+    """
+    ตรวจสอบสิทธิ์ผู้ใช้สำหรับแสดง/ซ่อนเมนู
+    Return dict with permission flags
+    """
+    if not session.get('logged_in'):
+        return {
+            'logged_in': False,
+            'is_god': False,
+            'is_staff': False,
+            'is_customer': False,
+            'can_manage_products': False,
+            'can_manage_packing': False,
+            'can_manage_users': False,
+            'can_view_orders': False,
+            'can_use_cart': False
+        }
+    
+    role_id = session.get('role_id', 3)
+    return {
+        'logged_in': True,
+        'role_id': role_id,
+        'role_name': get_user_role_name(),
+        'username': session.get('username', 'User'),
+        'email': session.get('email', ''),
+        # Permission flags
+        'is_god': role_id == 1,
+        'is_staff': role_id in [1, 2],
+        'is_customer': role_id in [1, 2, 3],
+        'can_manage_products': role_id in [1, 2],      # God + Staff
+        'can_manage_packing': role_id in [1, 2],       # God + Staff
+        'can_manage_users': role_id == 1,               # God only
+        'can_view_orders': role_id in [1, 2, 3],       # All logged in
+        'can_use_cart': role_id in [1, 2, 3]           # All logged in
+    }
+
+# Context Processor: ส่งข้อมูล permissions ไปยัง templates ทุกหน้า
+@app.context_processor
+def inject_user_permissions():
+    """ทำให้ user_perms ใช้ได้ในทุก template"""
+    return {'user_perms': check_user_permissions()}
+
+
+# ===== PUBLIC ROUTES (ไม่ต้องล็อกอิน) =====
+
 @app.route('/')
 def home():
-    """Home page route"""
+    """หน้าแรก - เข้าได้ทุกคน"""
     return render_template('home.html')
 
 @app.route('/gallery')
 def gallery():
-    """Gallery page route"""
+    """แกลเลอรี่ - เข้าได้ทุกคน"""
     return render_template('gallery.html')
 
 @app.route('/gallery/detail')
 def gallery_detail():
-    """Gallery detail page route"""
+    """รายละเอียดแกลเลอรี่ - เข้าได้ทุกคน"""
     return render_template('gallerydetail.html')
 
 @app.route('/about')
 def about():
-    """About page route"""
+    """เกี่ยวกับเรา - เข้าได้ทุกคน"""
     return render_template('about.html')
 
 @app.route('/contact')
 def contact():
-    """Contact page route"""
+    """ติดต่อเรา - เข้าได้ทุกคน"""
     return render_template('contact.html')
+
+# ===== AUTHENTICATION ROUTES =====
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page route - consumes API"""
+    """หน้าเข้าสู่ระบบ"""
+    if session.get('logged_in'):
+        flash('✅ คุณเข้าสู่ระบบอยู่แล้ว', 'info')
+        return redirect(url_for('home'))
+    
     if request.method == 'POST':
-        email = request.form.get('email')
+        email_or_username = request.form.get('email')  # รับทั้ง email หรือ username
         password = request.form.get('password')
         
-        if not email or not password:
-            flash('Please fill in all fields', 'error')
+        if not email_or_username or not password:
+            flash('❌ กรุณากรอก Email/Username และรหัสผ่าน', 'error')
             return render_template('login.html')
         
         try:
-            # Call API for authentication
-            response = requests.post(f'{API_BASE_URL}/login', json={
-                'email': email,
+            # ส่งทั้ง email และ username ไปให้ API เลือกใช้
+            login_data = {
+                'email': email_or_username,
+                'username': email_or_username,  # ส่งทั้ง 2 ให้ API ตรวจสอบ
                 'password': password
-            })
+            }
+            print(f"🔍 DEBUG - Sending to API: email={email_or_username}, username={email_or_username}")
+            
+            response = requests.post(f'{API_BASE_URL}/login', json=login_data, timeout=10)
             
             result = response.json()
             
             if result.get('success'):
-                # Store user info in session
                 user_data = result.get('data', {})
+                session.clear()
                 session['user_id'] = user_data.get('user_id')
                 session['username'] = user_data.get('username')
                 session['email'] = user_data.get('email')
+                session['role_id'] = user_data.get('role_id', 3)
+                session['user_info'] = user_data.get('user_info', {})
                 session['logged_in'] = True
+                session.permanent = True
                 
-                flash('Login successful!', 'success')
-                return redirect(url_for('home'))
+                role_name = get_user_role_name()
+                flash(f'✅ เข้าสู่ระบบสำเร็จ! ยินดีต้อนรับ {user_data.get("username")} ({role_name})', 'success')
+                
+                next_page = request.args.get('next')
+                if next_page:
+                    return redirect(next_page)
+                
+                role_id = session.get('role_id')
+                if role_id in [1, 2]:
+                    return redirect(url_for('manage_products'))
+                else:
+                    return redirect(url_for('home'))
             else:
-                flash(result.get('message', 'Login failed'), 'error')
-                
-        except requests.exceptions.RequestException:
-            flash('Unable to connect to server. Please try again later.', 'error')
+                flash(f'❌ {result.get("message", "เข้าสู่ระบบล้มเหลว")}', 'error')
+        
+        except requests.exceptions.Timeout:
+            flash('⏱️ การเชื่อมต่อหมดเวลา กรุณาลองใหม่อีกครั้ง', 'error')
+        except requests.exceptions.RequestException as e:
+            flash('❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง', 'error')
         except Exception as e:
-            flash('An error occurred. Please try again.', 'error')
+            flash('❌ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง', 'error')
     
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    """Logout route"""
+    """ออกจากระบบ"""
+    username = session.get('username', 'ผู้ใช้')
     session.clear()
-    flash('You have been logged out', 'info')
+    flash(f'�� ออกจากระบบแล้ว ลาก่อน {username}!', 'info')
     return redirect(url_for('home'))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    """Register page route - consumes API"""
+    """สมัครสมาชิก"""
     if request.method == 'POST':
-        # Get form data
         form_data = {
             'username': request.form.get('username'),
             'email': request.form.get('email'),
@@ -101,204 +250,46 @@ def register():
             'telephone': request.form.get('phone')
         }
         
-        # Basic validation
         required_fields = ['username', 'email', 'password', 'confirm_password', 'firstname', 'lastname', 'city', 'telephone']
         if not all(form_data.get(field) for field in required_fields):
-            flash('Please fill in all required fields', 'error')
+            flash('❌ กรุณากรอกข้อมูลให้ครบถ้วน', 'error')
             return render_template('register.html')
         
-        # Password confirmation
         if form_data['password'] != form_data['confirm_password']:
-            flash('Passwords do not match', 'error')
+            flash('❌ รหัสผ่านไม่ตรงกัน', 'error')
             return render_template('register.html')
         
-        # Prepare data for API (remove confirm_password)
+        if len(form_data['password']) < 6:
+            flash('❌ รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร', 'error')
+            return render_template('register.html')
+        
         api_data = {k: v for k, v in form_data.items() if k != 'confirm_password'}
         
         try:
-            # Call API for registration
-            response = requests.post(f'{API_BASE_URL}/register', json=api_data)
+            response = requests.post(f'{API_BASE_URL}/register', json=api_data, timeout=10)
             result = response.json()
             
             if result.get('success'):
-                flash('Registration successful! You can now login.', 'success')
+                flash('✅ สมัครสมาชิกสำเร็จ! สามารถเข้าสู่ระบบได้แล้ว', 'success')
                 return redirect(url_for('login'))
             else:
-                flash(result.get('message', 'Registration failed'), 'error')
-                
+                flash(f'❌ {result.get("message", "สมัครสมาชิกล้มเหลว")}', 'error')
+        
+        except requests.exceptions.Timeout:
+            flash('⏱️ การเชื่อมต่อหมดเวลา กรุณาลองใหม่อีกครั้ง', 'error')
         except requests.exceptions.RequestException:
-            flash('Unable to connect to server. Please try again later.', 'error')
+            flash('❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง', 'error')
         except Exception as e:
-            flash('An error occurred during registration. Please try again.', 'error')
+            flash('❌ เกิดข้อผิดพลาดในการสมัครสมาชิก กรุณาลองใหม่อีกครั้ง', 'error')
     
     return render_template('register.html')
 
-@app.route('/users')
-def users():
-    """Users page route - consumes API"""
-    try:
-        response = requests.get(f'{API_BASE_URL}/users')
-        result = response.json()
-        
-        if result.get('success'):
-            users_data = result.get('data', [])
-            return render_template('users.html', users=users_data, count=result.get('count', 0))
-        else:
-            flash('Unable to load users data', 'error')
-            return render_template('users.html', users=[], count=0)
-            
-    except requests.exceptions.RequestException:
-        flash('Unable to connect to server', 'error')
-        return render_template('users.html', users=[], count=0)
-    except Exception as e:
-        flash('An error occurred while loading users', 'error')
-        return render_template('users.html', users=[], count=0)
-
-@app.route('/tracking', methods=['GET', 'POST'])
-def tracking():
-    """Order tracking page route"""
-    order = None
-    message = None
-    
-    # Sample order data for demonstration
-    sample_orders = {
-        'ORD001': {
-            'order_id': 'ORD001',
-            'customer_name': 'สมชาย ใจดี',
-            'email': 'somchai@example.com',
-            'phone': '081-234-5678',
-            'address': '123 ถนนสุขุมวิท เขตวัฒนา กรุงเทพมหานคร 10110',
-            'order_date': '2025-09-10',
-            'status_id': 2  # 1=pending, 2=packing wait, 3=packing, 4=completed, 5+=failed
-        },
-        'ORD002': {
-            'order_id': 'ORD002',
-            'customer_name': 'สมศรี รักงาน',
-            'email': 'somsri@example.com',
-            'phone': '082-345-6789',
-            'address': '456 ถนนรามคำแหง เขตบางกะปิ กรุงเทพมหานคร 10240',
-            'order_date': '2025-09-12',
-            'status_id': 3
-        },
-        'ORD003': {
-            'order_id': 'ORD003',
-            'customer_name': 'สมหญิง มีความสุข',
-            'email': 'somying@example.com',
-            'phone': '083-456-7890',
-            'address': '789 ถนนพระราม 4 เขตปทุมวัน กรุงเทพมหานคร 10330',
-            'order_date': '2025-09-08',
-            'status_id': 4
-        },
-        'ORD004': {
-            'order_id': 'ORD004',
-            'customer_name': 'สมพงษ์ เสียใจ',
-            'email': 'sompong@example.com',
-            'phone': '084-567-8901',
-            'address': '321 ถนนลาดพร้าว เขตจตุจักร กรุงเทพมหานคร 10900',
-            'order_date': '2025-09-05',
-            'status_id': 5  # Failed status
-        }
-    }
-    
-    if request.method == 'POST':
-        # Handle order lookup from form submission
-        order_id = request.form.get('order_id', '').strip().upper()
-        
-        if not order_id:
-            message = 'กรุณาใส่หมายเลขคำสั่งซื้อ'
-        elif order_id in sample_orders:
-            order = sample_orders[order_id]
-        else:
-            message = f'ไม่พบคำสั่งซื้อหมายเลข {order_id}'
-    
-    elif request.method == 'GET':
-        # Handle order lookup from URL parameter
-        order_id = request.args.get('order_id', '').strip().upper()
-        
-        if order_id:
-            if order_id in sample_orders:
-                order = sample_orders[order_id]
-            else:
-                message = f'ไม่พบคำสั่งซื้อหมายเลข {order_id}'
-        else:
-            # No order ID provided, show search form
-            return render_template('tracking_search.html')
-    
-    return render_template('tracking.html', order=order, message=message)
-
-@app.route('/orders')
-def all_orders():
-    """All orders page route - Demo version without authentication"""
-    
-    # Sample orders data for demonstration
-    sample_orders = [
-        {
-            'order_id': 'ORD001',
-            'items': [
-                {'name': 'Custom Art Print', 'detail': 'A4 size, premium paper, custom design'},
-                {'name': 'Digital Artwork', 'detail': 'High resolution, personal use license'}
-            ],
-            'order_date': '2025-09-10',
-            'status_id': 2,
-            'total': 1500.00,
-            'bill': 'bill_001.jpg',
-            'custom': 'custom_001.jpg'
-        },
-        {
-            'order_id': 'ORD002',
-            'items': [
-                {'name': 'Portrait Commission', 'detail': '30x40cm canvas, oil painting style'}
-            ],
-            'order_date': '2025-09-12',
-            'status_id': 3,
-            'total': 3500.00,
-            'bill': 'bill_002.jpg',
-            'custom': 'custom_002.jpg'
-        },
-        {
-            'order_id': 'ORD003',
-            'items': [
-                {'name': 'Logo Design', 'detail': 'Complete brand package with variations'},
-                {'name': 'Business Card Design', 'detail': 'Print-ready files, 5 variations'}
-            ],
-            'order_date': '2025-09-08',
-            'status_id': 4,
-            'total': 2800.00,
-            'bill': 'bill_003.jpg',
-            'custom': 'custom_003.jpg'
-        },
-        {
-            'order_id': 'ORD004',
-            'items': [
-                {'name': 'Website Banner', 'detail': 'Responsive design, 3 size variations'}
-            ],
-            'order_date': '2025-09-05',
-            'status_id': 5,
-            'total': 1200.00,
-            'bill': 'bill_004.jpg',
-            'custom': 'custom_004.jpg'
-        }
-    ]
-    
-    # Status labels mapping
-    status_labels = {
-        1: 'รอการยืนยัน',
-        2: 'รอการแพ็คสินค้า',
-        3: 'กำลังแพ็คสินค้า',
-        4: 'สำเร็จ',
-        5: 'ยกเลิก/ล้มเหลว'
-    }
-    
-    # For demo/UI purposes, always show sample orders
-    orders = sample_orders
-    
-    return render_template('allorder.html', orders=orders, status_labels=status_labels)
+# ===== PROTECTED ROUTES - CUSTOMER AND ABOVE =====
 
 @app.route('/cart')
+@customer_or_above
 def cart():
-    """Shopping cart page route"""
-    
-    # Sample cart items for demonstration
+    """ตะกร้าสินค้า"""
     sample_cart_items = [
         {
             'product_id': 'PROD001',
@@ -306,53 +297,12 @@ def cart():
             'description': 'High-quality personalized portrait artwork',
             'price': 1500.00,
             'quantity': 2,
-            'image': 'portrait_art.jpg',
-            'category': 'Custom Artwork',
-            'size': 'A4',
-            'material': 'Premium Paper',
-            'detail': 'Custom portrait with premium paper finish'
-        },
-        {
-            'product_id': 'PROD002',
-            'name': 'Digital Logo Design',
-            'description': 'Professional logo design with multiple variations',
-            'price': 2500.00,
-            'quantity': 1,
-            'image': 'logo_design.jpg',
-            'category': 'Digital Design',
-            'size': 'Various Formats',
-            'material': 'Digital Files',
-            'detail': 'Complete logo package with various file formats'
-        },
-        {
-            'product_id': 'PROD003',
-            'name': 'Canvas Painting - Landscape',
-            'description': 'Beautiful landscape painting on canvas',
-            'price': 3500.00,
-            'quantity': 1,
-            'image': 'canvas_art.jpg',
-            'category': 'Canvas Art',
-            'size': '30x40cm',
-            'material': 'Canvas',
-            'detail': 'Hand-painted landscape on premium canvas'
-        },
-        {
-            'product_id': 'PROD004',
-            'name': 'Business Card Design',
-            'description': 'Professional business card design package',
-            'price': 800.00,
-            'quantity': 3,
-            'image': 'business_cards.jpg',
-            'category': 'Print Design',
-            'size': 'Standard Size',
-            'material': 'Print Ready',
-            'detail': 'Professional business card design with multiple variations'
+            'image': 'portrait_art.jpg'
         }
     ]
     
-    # Calculate totals
     subtotal = sum(item['price'] * item['quantity'] for item in sample_cart_items)
-    shipping = 50.00  # Fixed shipping cost
+    shipping = 50.00
     total = subtotal + shipping
     
     cart_summary = {
@@ -363,186 +313,226 @@ def cart():
     }
     
     return render_template('cart.html', 
-                         cart=sample_cart_items, 
+                         cart=sample_cart_items,
                          cart_items=sample_cart_items,
                          cart_summary=cart_summary,
                          total=total,
                          subtotal=subtotal,
                          shipping=shipping)
 
-@app.route('/manage-products')
-def manage_products():
-    """Manage products page route"""
-    
-    # Sample products data for demonstration
-    sample_products = [
+@app.route('/orders')
+@customer_or_above
+def all_orders():
+    """คำสั่งซื้อทั้งหมด"""
+    sample_orders = [
         {
-            'id': 1,
-            'name': 'Custom Art Print - Portrait',
-            'description': 'High-quality personalized portrait artwork with premium paper finish',
-            'price': 1500.00,
-            'amount': 25,
-            'size': 'A4',
-            'image': 'portrait_art.jpg',
-            'categories': [
-                {'id': 1, 'name': 'Custom Artwork'},
-                {'id': 2, 'name': 'Portraits'}
-            ]
-        },
-        {
-            'id': 2,
-            'name': 'Digital Logo Design',
-            'description': 'Professional logo design with multiple variations and file formats',
-            'price': 2500.00,
-            'amount': 15,
-            'size': 'Various',
-            'image': 'logo_design.jpg',
-            'categories': [
-                {'id': 3, 'name': 'Digital Design'},
-                {'id': 4, 'name': 'Branding'}
-            ]
-        },
-        {
-            'id': 3,
-            'name': 'Canvas Painting - Landscape',
-            'description': 'Beautiful hand-painted landscape on premium canvas',
-            'price': 3500.00,
-            'amount': 8,
-            'size': '30x40cm',
-            'image': 'canvas_art.jpg',
-            'categories': [
-                {'id': 5, 'name': 'Canvas Art'},
-                {'id': 6, 'name': 'Landscapes'}
-            ]
-        },
-        {
-            'id': 4,
-            'name': 'Business Card Design',
-            'description': 'Professional business card design package with print-ready files',
-            'price': 800.00,
-            'amount': 50,
-            'size': 'Standard',
-            'image': 'business_cards.jpg',
-            'categories': [
-                {'id': 3, 'name': 'Digital Design'},
-                {'id': 7, 'name': 'Print Design'}
-            ]
-        },
-        {
-            'id': 5,
-            'name': 'Website Banner Set',
-            'description': 'Responsive website banner designs in multiple sizes',
-            'price': 1200.00,
-            'amount': 30,
-            'size': 'Responsive',
-            'image': 'web_banners.jpg',
-            'categories': [
-                {'id': 3, 'name': 'Digital Design'},
-                {'id': 8, 'name': 'Web Design'}
-            ]
+            'order_id': 'ORD001',
+            'items': [{'name': 'Custom Art Print', 'detail': 'A4 size'}],
+            'order_date': '2025-09-10',
+            'status_id': 2,
+            'total': 1500.00
         }
     ]
     
-    # Sample categories data
-    sample_categories = [
-        {'id': 1, 'name': 'Custom Artwork'},
-        {'id': 2, 'name': 'Portraits'},
-        {'id': 3, 'name': 'Digital Design'},
-        {'id': 4, 'name': 'Branding'},
-        {'id': 5, 'name': 'Canvas Art'},
-        {'id': 6, 'name': 'Landscapes'},
-        {'id': 7, 'name': 'Print Design'},
-        {'id': 8, 'name': 'Web Design'}
+    status_labels = {
+        1: 'รอการยืนยัน',
+        2: 'รอการแพ็คสินค้า',
+        3: 'กำลังแพ็คสินค้า',
+        4: 'สำเร็จ',
+        5: 'ยกเลิก'
+    }
+    
+    return render_template('allorder.html', orders=sample_orders, status_labels=status_labels)
+
+@app.route('/tracking', methods=['GET', 'POST'])
+@customer_or_above
+def tracking():
+    """ติดตามคำสั่งซื้อ"""
+    order = None
+    message = None
+    
+    if request.method == 'POST':
+        order_id = request.form.get('order_id', '').strip().upper()
+        if not order_id:
+            message = 'กรุณาใส่หมายเลขคำสั่งซื้อ'
+        else:
+            message = f'ไม่พบคำสั่งซื้อหมายเลข {order_id}'
+    
+    return render_template('tracking.html', order=order, message=message)
+
+# ===== PROTECTED ROUTES - STAFF AND ABOVE =====
+
+@app.route('/manage-products')
+@staff_or_above
+def manage_products():
+    """จัดการสินค้า"""
+    sample_products = [
+        {
+            'id': 1,
+            'name': 'Custom Art Print',
+            'description': 'High-quality artwork',
+            'price': 1500.00,
+            'amount': 25,
+            'size': 'A4'
+        }
     ]
     
-    return render_template('manageproduct.html', 
-                         products=sample_products, 
-                         categories=sample_categories)
+    sample_categories = [
+        {'id': 1, 'name': 'Custom Artwork'},
+        {'id': 2, 'name': 'Digital Design'}
+    ]
+    
+    return render_template('manageproduct.html', products=sample_products, categories=sample_categories)
 
 @app.route('/manage-products/<int:category_id>')
+@staff_or_above
 def manage_products_by_category(category_id):
-    """Manage products filtered by category"""
-    
-    # This would filter products by category in a real implementation
-    # For now, return the same data
+    """จัดการสินค้าตามหมวดหมู่"""
+    # In a real application, filter products by category_id
+    # For now, return the same view as manage_products
     return manage_products()
 
 @app.route('/add-product', methods=['POST'])
+@staff_or_above
 def add_product():
-    """Add new product route"""
-    
+    """เพิ่มสินค้าใหม่"""
     # This would handle adding a new product in a real implementation
     # For demo purposes, return success
-    return {'success': True, 'message': 'Product added successfully'}
+    flash('✅ เพิ่มสินค้าสำเร็จ!', 'success')
+    return redirect(url_for('manage_products'))
 
 @app.route('/packing')
+@staff_or_above
 def packing():
-    """Packing management page route"""
-    # Sample orders data - replace with actual database query
+    """จัดการแพ็คสินค้า"""
     sample_orders = [
         {
             'order_id': 1,
             'customer': 'นาย สมชาย ใจดี',
-            'description': 'งานพิมพ์โปสเตอร์ A3 สี',
+            'description': 'งานพิมพ์โปสเตอร์',
             'order_date': '2024-03-15',
-            'bill_img': 'bill001.jpg',
-            'image': 'product001.jpg',
-            'status': 2  # รอการแพ็ค
-        },
-        {
-            'order_id': 2,
-            'customer': 'นางสาว สุดา สวยงาม',
-            'description': 'งานพิมพ์นามบัตร 1000 ใบ',
-            'order_date': '2024-03-14',
-            'bill_img': 'bill002.jpg',
-            'image': 'product002.jpg',
-            'status': 3  # กำลังแพ็ค
-        },
-        {
-            'order_id': 3,
-            'customer': 'บริษัท ABC จำกัด',
-            'description': 'งานพิมพ์แผ่นพับโฆษณา',
-            'order_date': '2024-03-13',
-            'bill_img': 'bill003.jpg',
-            'image': 'product003.jpg',
-            'status': 4  # สำเร็จ
-        },
-        {
-            'order_id': 4,
-            'customer': 'นาย วิชัย เก่งดี',
-            'description': 'งานพิมพ์สติ๊กเกอร์ 500 ชิ้น',
-            'order_date': '2024-03-12',
-            'bill_img': 'bill004.jpg',
-            'image': 'product004.jpg',
-            'status': 5  # ล้มเหลว
+            'status': 2
         }
     ]
     
     return render_template('packing.html', orders=sample_orders)
 
-# Error handlers
+# ===== PROTECTED ROUTES - GOD ONLY =====
+
+@app.route('/users')
+@god_only
+def users():
+    """จัดการผู้ใช้"""
+    try:
+        response = requests.get(f'{API_BASE_URL}/users', timeout=10)
+        result = response.json()
+        
+        if result.get('success'):
+            users_data = result.get('data', [])
+            for user in users_data:
+                role_id = user.get('role_id', 3)
+                user['role_name'] = ROLE_NAMES_TH.get(role_id, 'ไม่ทราบสิทธิ์')
+            
+            return render_template('users.html', users=users_data, count=result.get('count', 0))
+        else:
+            flash('❌ ไม่สามารถโหลดข้อมูลผู้ใช้ได้', 'error')
+            return render_template('users.html', users=[], count=0)
+    
+    except Exception as e:
+        flash('❌ เกิดข้อผิดพลาด', 'error')
+        return render_template('users.html', users=[], count=0)
+
+@app.route('/admin/add-user', methods=['GET', 'POST'])
+def admin_add_user():
+    """
+    Admin Panel - เพิ่มผู้ใช้สำหรับทดสอบ
+    ⚠️ ไม่มีการตรวจสอบสิทธิ์ - สำหรับทดสอบเท่านั้น
+    """
+    if request.method == 'POST':
+        # Get form data
+        form_data = {
+            'username': request.form.get('username'),
+            'email': request.form.get('email'),
+            'password': request.form.get('password'),
+            'firstname': request.form.get('firstname'),
+            'lastname': request.form.get('lastname'),
+            'role_id': int(request.form.get('role_id', 3)),
+            'street_address': request.form.get('street_address', ''),
+            'city': request.form.get('city', 'Bangkok'),
+            'postal_code': request.form.get('postal_code', '10000'),
+            'telephone': request.form.get('telephone')
+        }
+        
+        # Validation
+        required_fields = ['username', 'email', 'password', 'firstname', 'lastname', 'telephone']
+        if not all(form_data.get(field) for field in required_fields):
+            flash('❌ กรุณากรอกข้อมูลให้ครบถ้วน', 'error')
+            return render_template('admin_add_user.html', roles=ROLE_NAMES_TH)
+        
+        try:
+            # Call API to create user
+            response = requests.post(f'{API_BASE_URL}/register', json=form_data, timeout=10)
+            result = response.json()
+            
+            if result.get('success'):
+                role_name = ROLE_NAMES_TH.get(form_data['role_id'], 'Customer')
+                flash(f'✅ เพิ่มผู้ใช้ {form_data["username"]} ({role_name}) สำเร็จ!', 'success')
+                return redirect(url_for('users'))
+            else:
+                flash(f'❌ {result.get("message", "เพิ่มผู้ใช้ล้มเหลว")}', 'error')
+        
+        except requests.exceptions.Timeout:
+            flash('⏱️ การเชื่อมต่อหมดเวลา', 'error')
+        except requests.exceptions.RequestException:
+            flash('❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'error')
+        except Exception as e:
+            flash(f'❌ เกิดข้อผิดพลาด: {str(e)}', 'error')
+    
+    return render_template('admin_add_user.html', roles=ROLE_NAMES_TH)
+
+# ===== ERROR HANDLERS =====
+
+@app.route('/access-denied')
+def access_denied():
+    """หน้าไม่มีสิทธิ์"""
+    return render_template('access_denied.html'), 403
+
+@app.errorhandler(403)
+def forbidden_error(error):
+    return render_template('access_denied.html'), 403
+
+@app.errorhandler(401)
+def unauthorized_error(error):
+    flash('⚠️ กรุณาเข้าสู่ระบบก่อนเข้าใช้งาน', 'warning')
+    return redirect(url_for('login')), 401
+
 @app.errorhandler(404)
 def not_found_error(error):
-    """Handle 404 errors"""
     try:
         return render_template('404.html'), 404
     except:
-        # Fallback if template is missing
-        return '<h1>404 - Page Not Found</h1><p>The page you are looking for does not exist.</p><a href="/">Go Home</a>', 404
+        return '<h1>404 - ไม่พบหน้าที่ต้องการ</h1>', 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    """Handle 500 errors"""
     try:
         return render_template('500.html'), 500
     except:
-        # Fallback if template is missing
-        return '<h1>500 - Internal Server Error</h1><p>Something went wrong on our server.</p><a href="/">Go Home</a>', 500
+        return '<h1>500 - เกิดข้อผิดพลาด</h1>', 500
 
 if __name__ == '__main__':
-    print("🎨 Starting EchoArty Frontend Server...")
-    print("📝 This server handles web templates and calls API for data")
-    print("🔗 Make sure API server (api_app.py) is running on port 5000")
-    print("🌐 Frontend will be available at: http://localhost:8080")
+    print("="*60)
+    print("🎨 EchoArty Frontend Server with Session Management")
+    print("="*60)
+    print("📝 Session Authentication: ENABLED")
+    print("🔒 Role-based Authorization: ENABLED")
+    print("👥 User Roles:")
+    print("   1. God (ผู้ดูแลระบบ) - Full access")
+    print("   2. Staff (พนักงาน) - Manage products & packing")
+    print("   3. Customer (ลูกค้า) - Shop & orders")
+    print("="*60)
+    print("🔗 API Backend: http://localhost:5000")
+    print("🌐 Frontend: http://localhost:8080")
+    print("="*60)
     
     app.run(debug=True, host='0.0.0.0', port=8080)

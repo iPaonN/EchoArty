@@ -70,15 +70,9 @@ function validateLoginForm(form) {
 
 // Check if input is valid username or email
 function isValidUsernameOrEmail(input) {
-  // Check if it's an email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (emailRegex.test(input)) {
-    return true;
-  }
-
-  // Check if it's a valid username (3+ characters, alphanumeric and underscore)
-  const usernameRegex = /^[a-zA-Z0-9_]{3,}$/;
-  if (usernameRegex.test(input)) {
+  // If not empty and has reasonable length, accept it
+  // Let the backend handle the actual validation
+  if (input && input.length >= 3 && input.length <= 100) {
     return true;
   }
 

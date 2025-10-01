@@ -76,6 +76,9 @@
                 <i class="fas fa-envelope me-1"></i>Contact
               </a>
             </li>
+            
+            <!-- Customer Menu Items (Only when logged in) -->
+            {% if user_perms.logged_in %}
             <li class="nav-item">
               <a
                 class="nav-link {% if request.endpoint == 'cart' %}active{% endif %}"
@@ -92,6 +95,10 @@
                 <i class="fas fa-list-alt me-1"></i>รายการสั่งซื้อ
               </a>
             </li>
+            {% endif %}
+            
+            <!-- Staff Menu Items (Only for Staff and God) -->
+            {% if user_perms.can_manage_products %}
             <li class="nav-item">
               <a
                 class="nav-link {% if request.endpoint == 'manage_products' %}active{% endif %}"
@@ -100,6 +107,9 @@
                 <i class="fas fa-boxes me-1"></i>จัดการสินค้า
               </a>
             </li>
+            {% endif %}
+            
+            {% if user_perms.can_manage_packing %}
             <li class="nav-item">
               <a
                 class="nav-link {% if request.endpoint == 'packing' %}active{% endif %}"
@@ -108,6 +118,36 @@
                 <i class="fas fa-box-open me-1"></i>จัดการแพ็คกิ้ง
               </a>
             </li>
+            {% endif %}
+            
+            <!-- God Menu Items (Only for God) -->
+            {% if user_perms.can_manage_users %}
+            <li class="nav-item dropdown">
+              <a
+                class="nav-link dropdown-toggle {% if request.endpoint in ['users', 'admin_add_user'] %}active{% endif %}"
+                href="#"
+                id="adminDropdown"
+                role="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                <i class="fas fa-user-shield me-1"></i>Admin
+              </a>
+              <ul class="dropdown-menu">
+                <li>
+                  <a class="dropdown-item" href="{{ url_for('users') if url_for else '/users' }}">
+                    <i class="fas fa-users me-2"></i>จัดการผู้ใช้
+                  </a>
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <a class="dropdown-item" href="{{ url_for('admin_add_user') if url_for else '/admin/add-user' }}">
+                    <i class="fas fa-user-plus me-2"></i>เพิ่มผู้ใช้ทดสอบ
+                  </a>
+                </li>
+              </ul>
+            </li>
+            {% endif %}
           </ul>
 
           <!-- Right side navigation -->
@@ -204,11 +244,8 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Font Awesome -->
-    <script
-      src="https://kit.fontawesome.com/your-fontawesome-kit.js"
-      crossorigin="anonymous"
-    ></script>
+    <!-- Font Awesome (Free CDN) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     {% block extra_js %}{% endblock %}

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ไม่มีสิทธิ์เข้าถึง - EchoArty</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Prompt', 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.3);
+            padding: 50px;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .icon {
+            font-size: 100px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #e74c3c;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: #555;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        p {
+            color: #666;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .permissions {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .permissions h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .permissions ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .permissions li {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .permissions li strong {
+            color: #667eea;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #dee2e6;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .user-info {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+        }
+
+        .user-info strong {
+            color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🚫</div>
+        <h1>ไม่มีสิทธิ์เข้าถึง</h1>
+        <h2>Access Denied</h2>
+        
+        {% if user_perms.logged_in %}
+        <div class="user-info">
+            <p>
+                <strong>ผู้ใช้:</strong> {{ user_perms.username }}<br>
+                <strong>สิทธิ์:</strong> {{ user_perms.role_name }}
+            </p>
+        </div>
+        {% endif %}
+        
+        <p>
+            {% if user_perms.logged_in %}
+            ขออภัย คุณไม่มีสิทธิ์เข้าถึงหน้านี้<br>
+            บัญชีของคุณไม่มีสิทธิ์ในการเข้าถึงส่วนนี้ของระบบ
+            {% else %}
+            กรุณาเข้าสู่ระบบก่อนเข้าใช้งาน<br>
+            You need to login to access this page
+            {% endif %}
+        </p>
+
+        <div class="permissions">
+            <h3>📋 สิทธิ์การเข้าถึง</h3>
+            <ul>
+                <li>
+                    <strong>🔱 God (ผู้ดูแลระบบ):</strong> เข้าถึงได้ทุกอย่าง - จัดการผู้ใช้, สินค้า, คำสั่งซื้อ, แพ็คของ
+                </li>
+                <li>
+                    <strong>👨‍💼 Staff (พนักงาน):</strong> จัดการสินค้า, จัดการการแพ็คของ
+                </li>
+                <li>
+                    <strong>👤 Customer (ลูกค้า):</strong> ซื้อสินค้า, ดูคำสั่งซื้อ, ตะกร้าสินค้า
+                </li>
+            </ul>
+        </div>
+
+        <div class="buttons">
+            <a href="{{ url_for('home') }}" class="btn btn-primary">🏠 กลับหน้าแรก</a>
+            {% if not user_perms.logged_in %}
+            <a href="{{ url_for('login') }}" class="btn btn-secondary">🔐 เข้าสู่ระบบ</a>
+            {% else %}
+            <a href="javascript:history.back()" class="btn btn-secondary">⬅️ ย้อนกลับ</a>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
