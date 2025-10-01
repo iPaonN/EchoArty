@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, User, UserInfo, Role, Product
+from models import db, User, UserInfo, Role, Product, Category, ProductCategory 
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
@@ -432,18 +432,13 @@ def get_gallery_detail(p_id):
 def get_manage_products():
     """
     API Endpoint สำหรับดึงรายการสินค้าทั้งหมดสำหรับการจัดการ
-    รวมข้อมูล p_id, name, description, price, size, image, categories
     """
     try:
-        # 1. ดึงข้อมูลสินค้าทั้งหมดจากฐานข้อมูล
-        # ใช้ .all() เพื่อดึงทั้งหมด
+        # ดึงข้อมูลสินค้าทั้งหมดจากฐานข้อมูล
         products = Product.query.all()
 
-        # 2. แปลงรายการสินค้าเป็น list of dictionaries โดยใช้ Product.to_dict()
-        # ซึ่ง Product.to_dict() ที่เราแก้ไขแล้วจะรวมข้อมูล categories มาให้ด้วย
+        # แปลงรายการสินค้าเป็น list of dictionaries โดยใช้ Product.to_dict()
         products_data = [product.to_dict() for product in products]
-        
-        app.logger.info(f"API Get manage products successful. Count: {len(products_data)}")
         
         return jsonify({
             'success': True,

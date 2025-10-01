@@ -4,11 +4,14 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 let currentProductId = null;
+const API_BASE_URL = 'http://localhost:5000/api';
+const IMAGE_BASE_URL = '/static/images/products/';
 
 function initializeManageProduct() {
   setupModals();
   setupFormHandlers();
   setupImagePreviews();
+  fetchProducts(); 
 }
 
 // ======= NOTIFICATION SYSTEM =======
@@ -172,27 +175,79 @@ function closeAddModal() {
 }
 
 // ======= DATA FETCHING (SIMULATION) =======
-async function fetchProductData(productId) {
-  // Simulate API call - replace with actual endpoint
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      // Sample data - replace with actual API call
-      const sampleProduct = {
-        id: productId,
-        name: "ตัวอย่างสินค้า",
-        description: "รายละเอียดสินค้าตัวอย่าง",
-        price: 1500.0,
-        amount: 10,
-        size: "1:1",
-        image: "sample.jpg",
-        categories: [
-          { id: 1, name: "หมวดหมู่ 1" },
-          { id: 2, name: "หมวดหมู่ 2" },
-        ],
-      };
-      resolve(sampleProduct);
-    }, 1000);
-  });
+async function fetchProducts() {
+    const tableBody = document.getElementById('productTableBody');
+    // แสดงข้อความกำลังโหลด
+    tableBody.innerHTML = '<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>กำลังโหลดข้อมูลสินค้า...</td></tr>';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/manage-product`);
+        const result = await response.json();
+
+        if (result.success) {
+            renderProductTable(result.data);
+            console.log(`โหลดข้อมูลสินค้าสำเร็จ: ${result.data.length} รายการ`);
+            showNotification(`โหลดข้อมูลสินค้าสำเร็จ: ${result.data.length} รายการ`, 'success');
+        } else {
+            tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>ไม่สามารถโหลดข้อมูลสินค้า: ' + (result.message || 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ') + '</td></tr>';
+            showNotification(`เกิดข้อผิดพลาดในการโหลดข้อมูล: ${result.message}`, 'error');
+        }
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger"><i class="fas fa-plug me-2"></i>ไม่สามารถเชื่อมต่อกับ API Backend ได้</td></tr>';
+        showNotification('เกิดข้อผิดพลาดในการเชื่อมต่อ API', 'error');
+    }
+}
+
+function renderProductTable(products) {
+    const tableBody = document.getElementById('productTableBody');
+    tableBody.innerHTML = ''; // ล้างข้อความโหลด/ข้อมูลเก่า
+
+    if (products.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">ไม่พบสินค้าในระบบ</td></tr>';
+        return;
+    }
+
+    products.forEach(product => {
+        // 1. จัดรูปแบบหมวดหมู่
+        // (สมมติว่า product.categories เป็น array of {c_id, name})
+        const categoriesHtml = product.categories.map(cat => 
+            `<span class="badge bg-secondary me-1">${cat.name}</span>`
+        ).join('');
+        
+        // 2. จำกัดความยาวรายละเอียด
+        const shortDescription = product.description && product.description.length > 50 
+            ? product.description.substring(0, 50) + '...' 
+            : product.description || '-';
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${product.p_id}</td>
+            <td><strong>${product.name}</strong></td>
+            <td class="text-start small">${shortDescription}</td>
+            <td>฿${product.price.toFixed(2)}</td>
+            <td>${product.size || '-'}</td>
+            
+            <td>
+              <img
+                src="${IMAGE_BASE_URL}${product.image}"
+                alt="Product ID: {{ item.id }}"
+                class="product-image"
+                width="50"
+              />
+            </td>
+            <td>${categoriesHtml}</td>
+            <td>
+                <button class="btn btn-sm btn-warning me-2 edit-btn" data-id="${product.p_id}" onclick="openEditModal(${product.p_id})">
+                    <i class="fas fa-edit"></i> แก้ไข
+                </button>
+                <button class="btn btn-sm btn-danger delete-btn" data-id="${product.p_id}" onclick="openDeleteModal(${product.p_id}, '${product.name}', '${product.image}')">
+                    <i class="fas fa-trash-alt"></i> ลบ
+                </button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
 }
 
 function populateEditForm(product) {

@@ -421,94 +421,11 @@ def cart():
                          subtotal=subtotal,
                          shipping=shipping)
 
-@app.route('/manage-products')
-def manage_products():
-    """Manage products page route"""
-    
-    # Sample products data for demonstration
-    sample_products = [
-        {
-            'id': 1,
-            'name': 'Custom Art Print - Portrait',
-            'description': 'High-quality personalized portrait artwork with premium paper finish',
-            'price': 1500.00,
-            'amount': 25,
-            'size': 'A4',
-            'image': 'portrait_art.jpg',
-            'categories': [
-                {'id': 1, 'name': 'Custom Artwork'},
-                {'id': 2, 'name': 'Portraits'}
-            ]
-        },
-        {
-            'id': 2,
-            'name': 'Digital Logo Design',
-            'description': 'Professional logo design with multiple variations and file formats',
-            'price': 2500.00,
-            'amount': 15,
-            'size': 'Various',
-            'image': 'logo_design.jpg',
-            'categories': [
-                {'id': 3, 'name': 'Digital Design'},
-                {'id': 4, 'name': 'Branding'}
-            ]
-        },
-        {
-            'id': 3,
-            'name': 'Canvas Painting - Landscape',
-            'description': 'Beautiful hand-painted landscape on premium canvas',
-            'price': 3500.00,
-            'amount': 8,
-            'size': '30x40cm',
-            'image': 'canvas_art.jpg',
-            'categories': [
-                {'id': 5, 'name': 'Canvas Art'},
-                {'id': 6, 'name': 'Landscapes'}
-            ]
-        },
-        {
-            'id': 4,
-            'name': 'Business Card Design',
-            'description': 'Professional business card design package with print-ready files',
-            'price': 800.00,
-            'amount': 50,
-            'size': 'Standard',
-            'image': 'business_cards.jpg',
-            'categories': [
-                {'id': 3, 'name': 'Digital Design'},
-                {'id': 7, 'name': 'Print Design'}
-            ]
-        },
-        {
-            'id': 5,
-            'name': 'Website Banner Set',
-            'description': 'Responsive website banner designs in multiple sizes',
-            'price': 1200.00,
-            'amount': 30,
-            'size': 'Responsive',
-            'image': 'web_banners.jpg',
-            'categories': [
-                {'id': 3, 'name': 'Digital Design'},
-                {'id': 8, 'name': 'Web Design'}
-            ]
-        }
-    ]
-    
-    # Sample categories data
-    sample_categories = [
-        {'id': 1, 'name': 'Custom Artwork'},
-        {'id': 2, 'name': 'Portraits'},
-        {'id': 3, 'name': 'Digital Design'},
-        {'id': 4, 'name': 'Branding'},
-        {'id': 5, 'name': 'Canvas Art'},
-        {'id': 6, 'name': 'Landscapes'},
-        {'id': 7, 'name': 'Print Design'},
-        {'id': 8, 'name': 'Web Design'}
-    ]
-    
-    return render_template('manageproduct.html', 
-                         products=sample_products, 
-                         categories=sample_categories)
+@app.route('/manage-product')
+def manage_product():
+    """Management page route - โหลดหน้าจัดการสินค้า"""
+    # JavaScript จะทำหน้าที่ดึงข้อมูลจาก API_BASE_URL/manage-product
+    return render_template('manageproduct.html')
 
 @app.route('/manage-products/<int:category_id>')
 def manage_products_by_category(category_id):
@@ -516,7 +433,7 @@ def manage_products_by_category(category_id):
     
     # This would filter products by category in a real implementation
     # For now, return the same data
-    return manage_products()
+    return manage_product()
 
 @app.route('/add-product', methods=['POST'])
 def add_product():
