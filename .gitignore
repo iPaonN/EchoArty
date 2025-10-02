@@ -1,5 +1,43 @@
-venv
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment files
 .env
+.env.docker
+.env.cloud
+.env.local
+.env.*
+
+# Certificates
 *.toml
 *.pem
-*__pycache__
+*.key
+*.crt
+
+# Process IDs
+.api.pid
+.frontend.pid
+
+# Logs
+*.log
+api.log
+frontend.log
+docker/logs/
+
+# Docker
+docker-compose.override.yml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

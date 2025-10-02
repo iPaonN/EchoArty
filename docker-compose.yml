@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # MariaDB Database
+  mariadb:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.mariadb
+    container_name: echoarty_mariadb
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: echoart
+      MARIADB_USER: echoarty_user
+      MARIADB_PASSWORD: echoartypassword
+      TZ: Asia/Bangkok
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+      - ./docker/logs:/var/log/mysql
+    networks:
+      - echoarty_network
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # phpMyAdmin - Web-based database management
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: echoarty_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
+      UPLOAD_LIMIT: 64M
+      TZ: Asia/Bangkok
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    networks:
+      - echoarty_network
+
+volumes:
+  mariadb_data:
+    driver: local
+
+networks:
+  echoarty_network:
+    driver: bridge

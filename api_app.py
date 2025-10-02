@@ -37,15 +37,22 @@ db_name = os.getenv('DB_NAME')
 
 primary_host = db_host.split(',')[0] if db_host else ''
 
+# Use SSL only for cloud databases (not for localhost/Docker)
+is_local = primary_host in ['localhost', '127.0.0.1', 'mariadb', 'echoarty_mariadb']
+ssl_param = "" if is_local else "?ssl_verify_cert=true"
+
 database_uri = (
     f"mysql+pymysql://{db_user}:{db_password}@{primary_host}:{db_port}/{db_name}"
-    "?ssl_verify_cert=true"
+    f"{ssl_param}"
 )
 
 # Configuration
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or database_uri
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Debug: Print connection info (comment out in production)
+print(f"🔌 Connecting to: {primary_host}:{db_port}/{db_name} (SSL: {'Enabled' if not is_local else 'Disabled'})")
 
 # Initialize DB
 db.init_app(app)

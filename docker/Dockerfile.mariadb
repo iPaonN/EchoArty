@@ -1,0 +1,29 @@
+FROM mariadb:11.8.2
+
+# Install useful development tools
+RUN apt-get update && \
+    apt-get install -y \
+    vim \
+    nano \
+    net-tools \
+    iputils-ping \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Custom MariaDB configuration for development
+COPY mariadb.cnf /etc/mysql/conf.d/custom.cnf
+
+# Set proper permissions
+RUN chmod 644 /etc/mysql/conf.d/custom.cnf
+
+# Environment variables (will be overridden by docker-compose)
+ENV MARIADB_ROOT_PASSWORD=rootpassword
+ENV MARIADB_DATABASE=echoart
+ENV MARIADB_USER=echoarty_user
+ENV MARIADB_PASSWORD=echoartypassword
+
+EXPOSE 3306
+
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+    CMD healthcheck.sh --connect --innodb_initialized || exit 1
