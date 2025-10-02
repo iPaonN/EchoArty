@@ -121,12 +121,12 @@ async function openEditModal(productId) {
             throw new Error(result.message || 'Failed to fetch product data');
         }
         const product = result.data;
+        console.log('Product data received:', product); // Debug log
         
         // Fill form fields
-        document.getElementById('editProductName').value = product.name || '';
+        document.getElementById('editProductName').value = product.name || product.product_name || '';
         document.getElementById('editDescription').value = product.description || '';
         document.getElementById('editPrice').value = product.price || 0;
-        document.getElementById('editAmount').value = product.amount || 0;
         
         // Handle size ratio
         let x = '1', y = '1';
@@ -148,8 +148,16 @@ async function openEditModal(productId) {
         
         // Show current image
         const previewImg = document.getElementById('editImagePreview');
+        const noImageText = document.querySelector('#editModal .no-image-text');
+        
         if (product.image) {
             previewImg.src = IMAGE_BASE_URL + product.image;
+            previewImg.style.display = 'block';
+            if (noImageText) noImageText.style.display = 'none';
+        } else {
+            previewImg.src = '/static/images/placeholder.jpg';
+            previewImg.style.display = 'block';
+            if (noImageText) noImageText.style.display = 'block';
         }
         
         // Store product ID for form submission

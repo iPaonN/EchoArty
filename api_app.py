@@ -619,35 +619,7 @@ def api_get_products():
             'error': str(e)
         }), 500
 
-@app.route('/api/products/<int:product_id>', methods=['GET'])
-def api_get_product(product_id):
-    """API endpoint to get a specific product"""
-    try:
-        product = Product.query.get(product_id)
-        
-        if not product:
-            return jsonify({
-                'success': False,
-                'message': 'Product not found'
-            }), 404
-        
-        return jsonify({
-            'success': True,
-            'data': {
-                'p_id': product.p_id,
-                'product_name': product.name,
-                'description': product.description,
-                'price': float(product.price)
-            }
-        }), 200
-        
-    except Exception as e:
-        app.logger.error(f"API Get product error: {e}")
-        return jsonify({
-            'success': False,
-            'message': 'Failed to fetch product',
-            'error': str(e)
-        }), 500
+
 
 @app.route('/api/gallery', methods=['GET'])
 def api_get_gallery():
@@ -741,15 +713,16 @@ def manage_product_api(product_id):
     
     if request.method == 'GET':
         categories = [cat.c_id for cat in product.categories]
+        print(f"DEBUG: Product {product_id} - name: {product.name}, image: {product.image}, size: {product.size}")
         return jsonify({
             'success': True,
             'data': {
                 'name': product.name,
+                'product_name': product.name,  # Add both for compatibility
                 'description': product.description, 
                 'price': float(product.price) if product.price else 0,
                 'size': product.size or "1:1",
-                'amount': product.amount if hasattr(product, 'amount') else 0,
-                'image': product.image,
+                'image': product.image or '',
                 'categories': categories
             }
         }), 200
@@ -760,7 +733,8 @@ def manage_product_api(product_id):
             product.name = request.form.get('productName', product.name)
             product.description = request.form.get('description', product.description)
             product.price = float(request.form.get('price', product.price))
-            product.amount = int(request.form.get('amount', 0))
+            # Remove amount field handling since it's not needed
+            # product.amount = int(request.form.get('amount', 0))
             
             # Update size ratio
             number_x = request.form.get('number_x', '1')
@@ -806,7 +780,8 @@ def manage_product_api(product_id):
             product.name = request.form.get('productName')
             product.description = request.form.get('description')
             product.price = float(request.form.get('price'))
-            product.amount = int(request.form.get('amount'))
+            # Remove amount field handling since it's not needed
+            # product.amount = int(request.form.get('amount'))
             
             # Update size ratio
             number_x = request.form.get('number_x', '1')
