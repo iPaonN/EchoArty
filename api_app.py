@@ -12,6 +12,14 @@ load_dotenv()
 # Create Flask app instance
 app = Flask(__name__)
 
+# File upload configuration
+UPLOAD_FOLDER = 'static/images/products'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'jfif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
 # Enable CORS for all routes (allows frontend to access API)
 CORS(app)
 
@@ -295,6 +303,27 @@ def api_get_user(user_id):
             'error': str(e)
         }), 500
 
+@app.route('/api/categories', methods=['GET'])
+def get_categories():
+    """API endpoint to get all categories"""
+    try:
+        categories = Category.query.all()
+        categories_data = [{'c_id': cat.c_id, 'name': cat.name} for cat in categories]
+        
+        return jsonify({
+            'success': True,
+            'data': categories_data,
+            'count': len(categories_data)
+        }), 200
+        
+    except Exception as e:
+        app.logger.error(f"API Get categories error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to fetch categories',
+            'error': str(e)
+        }), 500
+
 @app.route('/api/roles', methods=['GET'])
 def api_get_roles():
     """API endpoint to get all roles"""
@@ -453,6 +482,105 @@ def get_manage_products():
             'message': 'Failed to fetch products for management',
             'error': str(e)
         }), 500
+
+@app.route('/api/products/<int:product_id>', methods=['GET', 'PUT'])
+def manage_product_api(product_id):
+    """API endpoint for managing a single product"""
+    product = Product.query.get_or_404(product_id)
+    
+    if request.method == 'GET':
+        categories = [cat.c_id for cat in product.categories]
+        return jsonify({
+            'success': True,
+            'data': {
+                'name': product.name,
+                'description': product.description, 
+                'price': float(product.price) if product.price else 0,
+                'size': product.size or "1:1",
+                'amount': product.amount if hasattr(product, 'amount') else 0,
+                'image': product.image,
+                'categories': categories
+            }
+        }), 200
+        
+    elif request.method == 'PUT':
+        try:
+            # Update basic info
+            product.name = request.form.get('productName', product.name)
+            product.description = request.form.get('description', product.description)
+            product.price = float(request.form.get('price', product.price))
+            product.amount = int(request.form.get('amount', 0))
+            
+            # Update size ratio
+            number_x = request.form.get('number_x', '1')
+            number_y = request.form.get('number_y', '1')
+            product.size = f"{number_x}:{number_y}"
+            
+            # Update categories if provided
+            if 'category[]' in request.form:
+                selected_categories = request.form.getlist('category[]')
+                product.categories = Category.query.filter(Category.c_id.in_(selected_categories)).all()
+            
+            # Handle image upload if provided
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and file.filename:
+                    from werkzeug.utils import secure_filename
+                    filename = secure_filename(file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    product.image = filename
+
+            # Update timestamp with Thai time (UTC+7)
+            from datetime import timedelta
+            thai_time = datetime.utcnow() + timedelta(hours=7)
+            product.updated_at = thai_time
+            
+            db.session.commit()
+            return jsonify({
+                'success': True,
+                'message': 'Product updated successfully'
+            }), 200
+                
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f"Error updating product {product_id}: {e}")
+            return jsonify({
+                'success': False,
+                'message': str(e)
+            }), 400
+    
+    if request.method == 'POST':
+        try:
+            # Update basic info
+            product.name = request.form.get('productName')
+            product.description = request.form.get('description')
+            product.price = float(request.form.get('price'))
+            product.amount = int(request.form.get('amount'))
+            
+            # Update size ratio
+            number_x = request.form.get('number_x', '1')
+            number_y = request.form.get('number_y', '1')
+            product.size = f"{number_x}:{number_y}"
+            
+            # Update categories
+            selected_categories = request.form.getlist('category[]')
+            product.categories = Category.query.filter(Category.c_id.in_(selected_categories)).all()
+            
+            # Handle image upload if provided
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    product.image = filename
+
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Product updated successfully'})
+            
+        except Exception as e:
+            return jsonify({'success': False, 'message': str(e)})
+    
+    return jsonify({'success': False, 'message': 'Invalid request method'})
 
 # Error handlers
 @app.errorhandler(404)

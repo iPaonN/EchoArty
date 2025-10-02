@@ -424,8 +424,19 @@ def cart():
 @app.route('/manage-product')
 def manage_product():
     """Management page route - โหลดหน้าจัดการสินค้า"""
-    # JavaScript จะทำหน้าที่ดึงข้อมูลจาก API_BASE_URL/manage-product
-    return render_template('manageproduct.html')
+    categories = []
+    try:
+        # เรียก API เพื่อดึงข้อมูล categories
+        response = requests.get(f'{API_BASE_URL}/categories')
+        if response.ok:
+            result = response.json()
+            if result.get('success'):
+                categories = result.get('data', [])
+    except Exception as e:
+        print(f"Error fetching categories: {e}")
+        
+    # ส่ง categories ไปให้ template
+    return render_template('manageproduct.html', categories=categories)
 
 @app.route('/manage-products/<int:category_id>')
 def manage_products_by_category(category_id):

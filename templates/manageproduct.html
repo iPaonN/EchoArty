@@ -145,7 +145,7 @@
         </a>
         {% if categories %} {% for category in categories %}
         <a
-          href="{{ url_for('manage_products_by_category', category_id=category.id) }}"
+          href="{{ url_for('manage_products_by_category', category_id=category.c_id) }}"
           class="list-group-item list-group-item-action"
         >
           <i class="fas fa-tag me-2"></i>{{ category.name }}
@@ -177,7 +177,7 @@
           ></button>
         </div>
         <div class="modal-body">
-          <form id="editForm">
+          <form id="editForm" data-product-id="">
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
@@ -284,12 +284,12 @@
                         class="form-check-input"
                         type="checkbox"
                         name="category[]"
-                        value="{{ category.id }}"
-                        id="edit-category-{{ category.id }}"
+                        value="{{ category.c_id }}"
+                        id="edit-category-{{ category.c_id }}"
                       />
                       <label
                         class="form-check-label"
-                        for="edit-category-{{ category.id }}"
+                        for="edit-category-{{ category.c_id }}"
                       >
                         {{ category.name }}
                       </label>
@@ -468,12 +468,12 @@
                         class="form-check-input"
                         type="checkbox"
                         name="category[]"
-                        value="{{ category.id }}"
-                        id="add-category-{{ category.id }}"
+                        value="{{ category.c_id }}"
+                        id="add-category-{{ category.c_id }}"
                       />
                       <label
                         class="form-check-label"
-                        for="add-category-{{ category.id }}"
+                        for="add-category-{{ category.c_id }}"
                       >
                         {{ category.name }}
                       </label>

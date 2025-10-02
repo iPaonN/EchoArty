@@ -107,41 +107,110 @@ function setupModals() {
   }
 }
 
-function openEditModal(productId) {
-  currentProductId = productId;
-
-  // Reset form
-  const form = document.getElementById("editForm");
-  form.reset();
-
-  // Reset image preview
-  resetImagePreview("editImagePreview");
-
-  // Reset checkboxes
-  document
-    .querySelectorAll('#editModal input[name="category[]"]')
-    .forEach((checkbox) => {
-      checkbox.checked = false;
-    });
-
-  // Show loading state
-  document.getElementById("editProductName").value = "กำลังโหลด...";
-  document.getElementById("editDescription").value = "กำลังโหลด...";
-
-  // Show modal
-  window.editModalInstance.show();
-
-  // Fetch product data (simulation - replace with actual API call)
-  fetchProductData(productId)
-    .then((product) => {
-      populateEditForm(product);
-    })
-    .catch((error) => {
-      console.error("Error loading product:", error);
-      showNotification("ไม่สามารถโหลดข้อมูลสินค้าได้", "error");
-      window.editModalInstance.hide();
-    });
+async function openEditModal(productId) {
+    try {
+        currentProductId = productId; // Store the current product ID
+        
+        // Fetch product data from API
+        const response = await fetch(`${API_BASE_URL}/products/${productId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const result = await response.json();
+        if (!result.success) {
+            throw new Error(result.message || 'Failed to fetch product data');
+        }
+        const product = result.data;
+        
+        // Fill form fields
+        document.getElementById('editProductName').value = product.name || '';
+        document.getElementById('editDescription').value = product.description || '';
+        document.getElementById('editPrice').value = product.price || 0;
+        document.getElementById('editAmount').value = product.amount || 0;
+        
+        // Handle size ratio
+        let x = '1', y = '1';
+        if (product.size) {
+            const parts = product.size.split(':');
+            if (parts.length === 2) {
+                [x, y] = parts;
+            }
+        }
+        document.getElementById('edit_number_x').value = x;
+        document.getElementById('edit_number_y').value = y;
+        
+        // Set categories
+        const checkboxes = document.querySelectorAll('#editModal input[name="category[]"]');
+        checkboxes.forEach(checkbox => {
+            const categoryId = parseInt(checkbox.value);
+            checkbox.checked = product.categories && product.categories.includes(categoryId);
+        });
+        
+        // Show current image
+        const previewImg = document.getElementById('editImagePreview');
+        if (product.image) {
+            previewImg.src = IMAGE_BASE_URL + product.image;
+        }
+        
+        // Store product ID for form submission
+        const editForm = document.getElementById('editForm');
+        editForm.dataset.productId = productId;
+        
+        // Show modal using the stored instance
+        if (window.editModalInstance) {
+            window.editModalInstance.show();
+        }
+        
+    } catch (error) {
+        console.error('Error fetching product data:', error);
+        showNotification('Failed to load product data', 'error');
+    }
 }
+
+// Handle edit form submission
+document.getElementById('editForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const productId = this.dataset.productId;
+    if (!productId) {
+        showNotification('Product ID not found', 'error');
+        return;
+    }
+
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+            method: 'PUT',
+            body: formData
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Close modal using stored instance
+            if (window.editModalInstance) {
+                window.editModalInstance.hide();
+            }
+            
+            // Show success notification
+            showNotification('Product updated successfully', 'success');
+            
+            // Refresh products display without page reload
+            await fetchProducts();
+        } else {
+            showNotification('Error updating product: ' + result.message, 'error');
+        }
+        
+    } catch (error) {
+        console.error('Error updating product:', error);
+        showNotification('Failed to update product', 'error');
+    }
+});
 
 function openAddModal() {
   // Reset form
@@ -182,6 +251,9 @@ async function fetchProducts() {
 
     try {
         const response = await fetch(`${API_BASE_URL}/manage-product`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const result = await response.json();
 
         if (result.success) {
