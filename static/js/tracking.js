@@ -10,14 +10,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
   /**
    * Updates the progress bar based on status ID and screen size
+   * Status: 1=Pending, 2=Processing, 3=Packing, 4=Delivery, 5=Complete, 6=Cancelled
    */
   function updateProgressBar() {
-    // Calculate progress percentage based on status
+    // Calculate progress percentage based on status (4 steps: Processing, Packing, Delivery, Complete)
     let progressPercentage = 0;
 
-    if (statusId >= 4) progressPercentage = 100;
-    else if (statusId === 3) progressPercentage = 66;
-    else if (statusId === 2) progressPercentage = 33;
+    if (statusId >= 5) progressPercentage = 100;      // Complete (5)
+    else if (statusId === 4) progressPercentage = 75; // Delivery (4)
+    else if (statusId === 3) progressPercentage = 50; // Packing (3)
+    else if (statusId === 2) progressPercentage = 25; // Processing (2)
 
     // Calculate active steps for animation
     const activeSteps = statusId - 1;
@@ -28,9 +30,9 @@ document.addEventListener("DOMContentLoaded", function () {
       progressBar.style.width = "0.3rem";
       progressBar.style.height = `${progressPercentage}%`;
 
-      // Adjust for proper vertical positioning
+      // Adjust for proper vertical positioning (4 steps)
       if (activeSteps > 0) {
-        const multiplier = Math.min(activeSteps, 3) / 3;
+        const multiplier = Math.min(activeSteps, 4) / 4;
         const containerHeight = container.offsetHeight - 100;
         progressBar.style.height = `${containerHeight * multiplier}px`;
       } else {
@@ -41,10 +43,10 @@ document.addEventListener("DOMContentLoaded", function () {
       progressBar.style.height = "0.3rem";
       progressBar.style.width = `${progressPercentage}%`;
 
-      // Adjust for proper horizontal positioning
+      // Adjust for proper horizontal positioning (4 steps)
       const containerWidth = container.offsetWidth - 50;
       if (activeSteps > 0) {
-        const multiplier = Math.min(activeSteps, 3) / 3;
+        const multiplier = Math.min(activeSteps, 4) / 4;
         progressBar.style.width = `${containerWidth * multiplier}px`;
       } else {
         progressBar.style.width = "0";

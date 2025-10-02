@@ -348,11 +348,12 @@ def all_orders():
         orders = []
     
     status_labels = {
-        1: 'รอการยืนยัน',
-        2: 'รอการแพ็คสินค้า',
-        3: 'กำลังแพ็คสินค้า',
-        4: 'สำเร็จ',
-        5: 'ยกเลิก'
+        1: 'Pending',
+        2: 'Processing',
+        3: 'Packing',
+        4: 'Delivery',
+        5: 'Completed',
+        6: 'Cancelled'
     }
     
     return render_template('allorder.html', orders=orders, status_labels=status_labels)
@@ -376,15 +377,16 @@ def tracking():
                 
                 if result.get('success'):
                     order = result.get('data')
-                    # Add Thai status label
+                    # Add status label
                     status_labels = {
-                        1: 'รอการยืนยัน',
-                        2: 'รอการแพ็คสินค้า',
-                        3: 'กำลังแพ็คสินค้า',
-                        4: 'สำเร็จ',
-                        5: 'ยกเลิก'
+                        1: 'Pending (รอดำเนินการ)',
+                        2: 'Processing (กำลังดำเนินการ)',
+                        3: 'Packing (กำลังแพ็ค)',
+                        4: 'Delivery (กำลังจัดส่ง)',
+                        5: 'Complete (เสร็จสิ้น)',
+                        6: 'Cancelled (ยกเลิก)'
                     }
-                    order['status_label'] = status_labels.get(order.get('status_id'), 'ไม่ทราบสถานะ')
+                    order['status_label'] = status_labels.get(order.get('status_id'), 'Unknown')
                 else:
                     message = f'ไม่พบคำสั่งซื้อหมายเลข {order_id}'
             
@@ -480,16 +482,15 @@ def update_order_status():
 @app.route('/packing')
 @staff_or_above
 def packing():
-    """จัดการแพ็คสินค้า"""
+    """จัดการแพ็คสินค้า - Staff และ God เห็นทุก order"""
     try:
-        # Get orders that need packing (status 2 or 3)
+        # Get all orders (Staff and God can see everything)
         response = requests.get(f'{API_BASE_URL}/orders', timeout=10)
         result = response.json()
         
         if result.get('success'):
-            all_orders = result.get('data', [])
-            # Filter for orders that are waiting for packing or being packed
-            orders = [order for order in all_orders if order.get('status_id') in [2, 3]]
+            # Staff (role_id=2) and God (role_id=1) can see all orders
+            orders = result.get('data', [])
         else:
             flash('❌ ไม่สามารถโหลดข้อมูลคำสั่งซื้อได้', 'error')
             orders = []

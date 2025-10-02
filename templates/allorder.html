@@ -64,16 +64,22 @@
                   </td>
                   <td>{{ order['order_date'] }}</td>
                   <td>
-                    {% set status_class = 'primary' %} {% if order['status_id']
-                    == 1 %} {% set status_class = 'secondary' %} {% elif
-                    order['status_id'] == 2 %} {% set status_class = 'info' %}
-                    {% elif order['status_id'] == 3 %} {% set status_class =
-                    'warning' %} {% elif order['status_id'] == 4 %} {% set
-                    status_class = 'success' %} {% elif order['status_id'] >= 5
-                    %} {% set status_class = 'danger' %} {% endif %}
+                    {% set status_class = 'primary' %} 
+                    {% if order['status_id'] == 1 %} 
+                      {% set status_class = 'secondary' %}
+                    {% elif order['status_id'] == 2 %} 
+                      {% set status_class = 'info' %}
+                    {% elif order['status_id'] == 3 %} 
+                      {% set status_class = 'primary' %}
+                    {% elif order['status_id'] == 4 %} 
+                      {% set status_class = 'warning' %}
+                    {% elif order['status_id'] == 5 %} 
+                      {% set status_class = 'success' %}
+                    {% elif order['status_id'] == 6 %} 
+                      {% set status_class = 'danger' %}
+                    {% endif %}
                     <span class="badge bg-{{ status_class }}">
-                      {{ status_labels[order['status_id']] if status_labels else
-                      'Unknown' }}
+                      {{ status_labels[order['status_id']] if status_labels else 'Unknown' }}
                     </span>
                   </td>
                   <td><strong>฿{{ "%.2f"|format(order['total_amount']) }}</strong></td>

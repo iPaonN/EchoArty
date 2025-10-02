@@ -107,16 +107,28 @@
   letter-spacing: 0.5px;
 }
 
-.status-waiting {
-  background: linear-gradient(45deg, #ffc107, #ff8f00);
-  color: #333;
-  border: 2px solid #ffa000;
+.status-pending {
+  background: linear-gradient(45deg, #6c757d, #5a6268);
+  color: white;
+  border: 2px solid #545b62;
+}
+
+.status-processing {
+  background: linear-gradient(45deg, #17a2b8, #138496);
+  color: white;
+  border: 2px solid #117a8b;
 }
 
 .status-packing {
   background: linear-gradient(45deg, #03a9f4, #0277bd);
   color: white;
   border: 2px solid #0288d1;
+}
+
+.status-delivery {
+  background: linear-gradient(45deg, #ffc107, #ff8f00);
+  color: #333;
+  border: 2px solid #ffa000;
 }
 
 .status-success {

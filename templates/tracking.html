@@ -33,7 +33,7 @@
       </h1>
 
       <div
-        class="progress__container {{ 'failed' if order.status_id >= 5 else '' }}"
+        class="progress__container {{ 'failed' if order.status_id == 6 else '' }}"
         data-status-id="{{ order.status_id }}"
       >
         <div class="progress__bar js-bar"></div>
@@ -42,9 +42,9 @@
           <div
             class="progress__circle js-circle {{ 'active' if order.status_id >= 2 else '' }}"
           >
-            <i class="fas fa-box-open"></i>
+            <i class="fas fa-cog"></i>
           </div>
-          <div class="progress__label">รอการแพ็คสินค้า</div>
+          <div class="progress__label">กำลังดำเนินการ</div>
         </div>
 
         <div class="progress__step">
@@ -60,9 +60,18 @@
           <div
             class="progress__circle js-circle {{ 'active' if order.status_id >= 4 else '' }}"
           >
+            <i class="fas fa-shipping-fast"></i>
+          </div>
+          <div class="progress__label">กำลังจัดส่ง</div>
+        </div>
+
+        <div class="progress__step">
+          <div
+            class="progress__circle js-circle {{ 'active' if order.status_id >= 5 else '' }}"
+          >
             <i class="fas fa-check-circle"></i>
           </div>
-          <div class="progress__label">สำเร็จ</div>
+          <div class="progress__label">เสร็จสิ้น</div>
         </div>
       </div>
 

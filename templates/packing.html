@@ -49,57 +49,81 @@
                 </button>
               </td>
               <td>
-                {% if order['status_id'] == 3 %}
+                {% if order['status_id'] == 1 %}
                 <span
                   id="status-{{ order['order_id'] }}"
-                  class="badge status-packing"
-                  >กำลังแพ็ค</span
-                >
-                {% elif order['status_id'] == 4 %}
-                <span
-                  id="status-{{ order['order_id'] }}"
-                  class="badge status-success"
-                  >สำเร็จ</span
-                >
-                {% elif order['status_id'] == 5 %}
-                <span
-                  id="status-{{ order['order_id'] }}"
-                  class="badge status-failed"
-                  >ล้มเหลว</span
+                  class="badge status-pending bg-secondary"
+                  >Pending</span
                 >
                 {% elif order['status_id'] == 2 %}
                 <span
                   id="status-{{ order['order_id'] }}"
-                  class="badge status-waiting"
-                  >รอการแพ็ค</span
+                  class="badge status-processing bg-info"
+                  >Processing</span
+                >
+                {% elif order['status_id'] == 3 %}
+                <span
+                  id="status-{{ order['order_id'] }}"
+                  class="badge status-packing bg-primary"
+                  >Packing</span
+                >
+                {% elif order['status_id'] == 4 %}
+                <span
+                  id="status-{{ order['order_id'] }}"
+                  class="badge status-delivery bg-warning"
+                  >Delivery</span
+                >
+                {% elif order['status_id'] == 5 %}
+                <span
+                  id="status-{{ order['order_id'] }}"
+                  class="badge status-success bg-success"
+                  >Complete</span
+                >
+                {% elif order['status_id'] == 6 %}
+                <span
+                  id="status-{{ order['order_id'] }}"
+                  class="badge status-failed bg-danger"
+                  >Cancelled</span
                 >
                 {% else %}
                 <span
                   id="status-{{ order['order_id'] }}"
                   class="badge bg-secondary"
-                  >ไม่ระบุ</span
+                  >Unknown</span
                 >
                 {% endif %}
               </td>
               <td>
                 <div class="action-buttons d-flex flex-wrap gap-1">
                   <button
-                    class="btn btn-primary btn-sm btn-packing"
+                    class="btn btn-info btn-sm"
+                    onclick="changeStatus('status-{{ order['order_id'] }}', 'Processing', '{{ order['order_id'] }}')"
+                  >
+                    <i class="fas fa-cog me-1"></i><span>Processing</span>
+                  </button>
+                  <button
+                    class="btn btn-primary btn-sm"
                     onclick="changeStatus('status-{{ order['order_id'] }}', 'Packing', '{{ order['order_id'] }}')"
                   >
-                    <i class="fas fa-box me-1"></i><span>กำลังแพ็ค</span>
+                    <i class="fas fa-box me-1"></i><span>Packing</span>
                   </button>
                   <button
-                    class="btn btn-success btn-sm btn-status-success"
-                    onclick="changeStatus('status-{{ order['order_id'] }}', 'Success', '{{ order['order_id'] }}')"
+                    class="btn btn-warning btn-sm"
+                    onclick="changeStatus('status-{{ order['order_id'] }}', 'Delivery', '{{ order['order_id'] }}')"
                   >
-                    <i class="fas fa-check me-1"></i><span>สำเร็จ</span>
+                    <i class="fas fa-shipping-fast me-1"></i><span>Delivery</span>
                   </button>
                   <button
-                    class="btn btn-danger btn-sm btn-failed"
-                    onclick="changeStatus('status-{{ order['order_id'] }}', 'Failed', '{{ order['order_id'] }}')"
+                    class="btn btn-success btn-sm"
+                    onclick="changeStatus('status-{{ order['order_id'] }}', 'Complete', '{{ order['order_id'] }}')"
                   >
-                    <i class="fas fa-times me-1"></i><span>ล้มเหลว</span>
+                    <i class="fas fa-check me-1"></i><span>Complete</span>
+                  </button>
+                  <button
+                    class="btn btn-danger btn-sm"
+                    onclick="changeStatus('status-{{ order['order_id'] }}', 'Cancelled', '{{ order['order_id'] }}')"
+                  >
+                    <i class="fas fa-times me-1"></i><span>Cancelled</span>
                   </button>
                 </div>
               </td>

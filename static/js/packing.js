@@ -10,10 +10,22 @@ function initializePacking() {
 
 // ======= STATUS TRANSLATIONS =======
 const STATUS_TRANSLATIONS = {
-  "Waiting for packing": "รอการแพ็ค",
-  Packing: "กำลังแพ็ค",
-  Success: "สำเร็จ",
-  Failed: "ล้มเหลว",
+  Pending: "Pending (รอดำเนินการ)",
+  Processing: "Processing (กำลังดำเนินการ)",
+  Packing: "Packing (กำลังแพ็ค)",
+  Delivery: "Delivery (กำลังจัดส่ง)",
+  Complete: "Complete (เสร็จสิ้น)",
+  Cancelled: "Cancelled (ยกเลิก)",
+};
+
+// Map status names to status IDs
+const STATUS_TO_ID = {
+  Pending: 1,
+  Processing: 2,
+  Packing: 3,
+  Delivery: 4,
+  Complete: 5,
+  Cancelled: 6,
 };
 
 // ======= MODAL MANAGEMENT =======
@@ -34,10 +46,18 @@ function changeStatus(statusElementId, status, orderId) {
 
   // Remove all existing status classes
   statusElement.classList.remove(
-    "status-waiting",
+    "status-pending",
+    "status-processing",
     "status-packing",
+    "status-delivery",
     "status-success",
-    "status-failed"
+    "status-failed",
+    "bg-secondary",
+    "bg-info",
+    "bg-primary",
+    "bg-warning",
+    "bg-success",
+    "bg-danger"
   );
 
   // Add animation class
@@ -48,19 +68,27 @@ function changeStatus(statusElementId, status, orderId) {
   let notificationType = "";
 
   switch (status) {
-    case "Waiting for packing":
-      statusClass = "status-waiting";
-      notificationType = "waiting";
+    case "Pending":
+      statusClass = "status-pending";
+      notificationType = "info";
+      break;
+    case "Processing":
+      statusClass = "status-processing";
+      notificationType = "info";
       break;
     case "Packing":
       statusClass = "status-packing";
       notificationType = "packing";
       break;
-    case "Success":
+    case "Delivery":
+      statusClass = "status-delivery";
+      notificationType = "info";
+      break;
+    case "Complete":
       statusClass = "status-success";
       notificationType = "success";
       break;
-    case "Failed":
+    case "Cancelled":
       statusClass = "status-failed";
       notificationType = "failed";
       break;
@@ -90,15 +118,25 @@ function changeStatus(statusElementId, status, orderId) {
 // ======= API CALLS =======
 async function updateOrderStatusAPI(orderId, status) {
   try {
-    const response = await fetch("/api/update-order-status", {
+    // Convert status name to status_id
+    const statusId = STATUS_TO_ID[status];
+    
+    if (!statusId) {
+      console.error("Invalid status:", status);
+      showNotification("สถานะไม่ถูกต้อง", "error");
+      return;
+    }
+
+    // Call backend API which will then call the main API
+    const response = await fetch("/update-order-status", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-Requested-With": "XMLHttpRequest",
       },
       body: JSON.stringify({
-        orderId: parseInt(orderId),
-        status: status,
+        order_id: parseInt(orderId),
+        status_id: statusId,
       }),
     });
 
@@ -110,6 +148,8 @@ async function updateOrderStatusAPI(orderId, status) {
 
     if (!data.success) {
       showNotification(`ไม่สามารถอัปเดตสถานะได้: ${data.message}`, "error");
+    } else {
+      console.log("Status updated successfully:", data);
     }
   } catch (error) {
     console.error("Error updating order status:", error);
