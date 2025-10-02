@@ -1,11 +1,104 @@
 // Packing page functionality for Flask/Bootstrap application
 document.addEventListener("DOMContentLoaded", function () {
   initializePacking();
+  setupFilterButtons();
+  setupSearchBox();
 });
 
 function initializePacking() {
   setupModals();
   setupNotifications();
+}
+
+// ======= FILTER FUNCTIONALITY =======
+function setupFilterButtons() {
+  const filterButtons = document.querySelectorAll('.filter-btn');
+  
+  filterButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      // Remove active class from all buttons
+      filterButtons.forEach(btn => btn.classList.remove('active'));
+      
+      // Add active class to clicked button
+      this.classList.add('active');
+      
+      // Get filter status
+      const filterStatus = this.getAttribute('data-status');
+      
+      // Filter orders
+      filterOrders(filterStatus);
+    });
+  });
+}
+
+function filterOrders(status) {
+  const rows = document.querySelectorAll('.order-row');
+  let visibleCount = 0;
+  
+  rows.forEach(row => {
+    if (status === 'all') {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      const rowStatus = row.getAttribute('data-status');
+      if (rowStatus === status) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    }
+  });
+  
+  // Show/hide empty message
+  updateEmptyState(visibleCount);
+}
+
+// ======= SEARCH FUNCTIONALITY =======
+function setupSearchBox() {
+  const searchInput = document.getElementById('searchInput');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      searchOrders(searchTerm);
+    });
+  }
+}
+
+function searchOrders(searchTerm) {
+  const rows = document.querySelectorAll('.order-row');
+  let visibleCount = 0;
+  
+  rows.forEach(row => {
+    const orderId = row.querySelector('.order-id').textContent.toLowerCase();
+    const customerName = row.querySelector('.customer-name').textContent.toLowerCase();
+    const description = row.querySelector('.order-description').textContent.toLowerCase();
+    
+    if (orderId.includes(searchTerm) || 
+        customerName.includes(searchTerm) || 
+        description.includes(searchTerm)) {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+  
+  // Show/hide empty message
+  updateEmptyState(visibleCount);
+}
+
+function updateEmptyState(visibleCount) {
+  const noOrdersRow = document.querySelector('.no-orders-row');
+  
+  if (noOrdersRow) {
+    if (visibleCount === 0) {
+      noOrdersRow.style.display = '';
+    } else {
+      noOrdersRow.style.display = 'none';
+    }
+  }
 }
 
 // ======= STATUS TRANSLATIONS =======

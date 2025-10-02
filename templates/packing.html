@@ -1,189 +1,213 @@
-{% extends "base.html" %} {% block title %}จัดการแพ็คกิ้ง - EchoArty{% endblock
-%} {% block extra_css %}
-<link
-  rel="stylesheet"
-  href="{{ url_for('static', filename='css/packing.css') }}"
-/>
-{% endblock %} {% block content %}
-<div class="container my-5">
+{% extends "base.html" %}
+{% block title %}จัดการแพ็คกิ้ง - EchoArty{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/packing.css') }}"/>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
   <div class="packing-container">
+    
+    <!-- Header with Stats -->
     <div class="page-header">
-      <h1><i class="fas fa-box-open me-2"></i>ระบบจัดการคำสั่งซื้อ</h1>
+      <div class="header-content">
+        <div class="header-title">
+          <i class="fas fa-box-open me-3"></i>
+          <div>
+            <h1>ระบบจัดการคำสั่งซื้อ</h1>
+            <p class="mb-0">Order Management System</p>
+          </div>
+        </div>
+        <div class="header-stats">
+          <div class="stat-card">
+            <i class="fas fa-shopping-cart"></i>
+            <div>
+              <span class="stat-number">{{ orders|length if orders else 0 }}</span>
+              <span class="stat-label">คำสั่งซื้อทั้งหมด</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <div class="filter-group">
+        <button class="filter-btn active" data-status="all">
+          <i class="fas fa-list me-2"></i>ทั้งหมด
+        </button>
+        <button class="filter-btn" data-status="1">
+          <i class="fas fa-clock me-2"></i>Pending
+        </button>
+        <button class="filter-btn" data-status="2">
+          <i class="fas fa-cog me-2"></i>Processing
+        </button>
+        <button class="filter-btn" data-status="3">
+          <i class="fas fa-box me-2"></i>Packing
+        </button>
+        <button class="filter-btn" data-status="4">
+          <i class="fas fa-shipping-fast me-2"></i>Delivery
+        </button>
+        <button class="filter-btn" data-status="5">
+          <i class="fas fa-check-circle me-2"></i>Complete
+        </button>
+        <button class="filter-btn" data-status="6">
+          <i class="fas fa-times-circle me-2"></i>Cancelled
+        </button>
+      </div>
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" id="searchInput" placeholder="ค้นหา Order ID หรือชื่อลูกค้า...">
+      </div>
+    </div>
+
+    <!-- Table Container -->
     <div class="table-container">
-      <h2><i class="fas fa-clipboard-list me-2"></i>รายการคำสั่งซื้อ</h2>
+      <div class="table-header">
+        <h2><i class="fas fa-clipboard-list me-2"></i>รายการคำสั่งซื้อ</h2>
+        <button class="btn btn-primary" onclick="location.reload()">
+          <i class="fas fa-sync-alt me-2"></i>รีเฟรช
+        </button>
+      </div>
 
       <div class="table-responsive">
-        <table class="table table-hover">
-          <thead class="table-primary">
+        <table class="table table-hover" id="ordersTable">
+          <thead>
             <tr>
-              <th><i class="fas fa-hashtag me-2"></i>รหัสคำสั่งซื้อ</th>
-              <th title="Customer Name">
-                <i class="fas fa-user me-2"></i>ลูกค้า
-              </th>
-              <th><i class="fas fa-info-circle me-2"></i>รายละเอียด</th>
+              <th><i class="fas fa-hashtag me-2"></i>Order ID</th>
+              <th><i class="fas fa-user me-2"></i>ลูกค้า</th>
+              <th class="description-col"><i class="fas fa-info-circle me-2"></i>รายละเอียด</th>
               <th><i class="fas fa-calendar me-2"></i>วันที่</th>
-              <th><i class="fas fa-file-invoice me-2"></i>รูปภาพ</th>
-              <th><i class="fas fa-tasks me-2"></i>สถานะ</th>
-              <th><i class="fas fa-tools me-2"></i>การจัดการ</th>
+              <th class="text-center"><i class="fas fa-tasks me-2"></i>สถานะ</th>
+              <th class="text-center"><i class="fas fa-image me-2"></i>รูปภาพ</th>
+              <th class="text-center"><i class="fas fa-tools me-2"></i>จัดการ</th>
             </tr>
           </thead>
           <tbody>
-            {% if orders and orders|length > 0 %} {% for order in orders %}
-            <tr data-order-id="{{ order['order_id'] }}">
-              <td class="order-id">{{ order['order_id'] }}</td>
-              <td class="customer-name">{{ order['customer_name'] or 'ไม่ระบุ' }}</td>
-              <td class="order-description">{{ order['description'] or 'ไม่มีรายละเอียด' }}</td>
-              <td class="order-date">{{ order['order_date'] }}</td>
-              <td>
-                {% set bill_url = url_for('static', filename='images/payment/' +
-                (order['bill_img'] or 'dummy.jpg')) %} {% set product_url =
-                url_for('static', filename='images/products/' + (order['img'] or
-                'dummy.jpg')) %}
-                <button
-                  class="btn btn-info btn-sm btn-image"
-                  onclick="viewImages('{{ bill_url }}', '{{ product_url }}')"
-                >
-                  <i class="fas fa-images me-1"></i>ดู
-                </button>
-              </td>
-              <td>
-                {% if order['status_id'] == 1 %}
-                <span
-                  id="status-{{ order['order_id'] }}"
-                  class="badge status-pending bg-secondary"
-                  >Pending</span
-                >
-                {% elif order['status_id'] == 2 %}
-                <span
-                  id="status-{{ order['order_id'] }}"
-                  class="badge status-processing bg-info"
-                  >Processing</span
-                >
-                {% elif order['status_id'] == 3 %}
-                <span
-                  id="status-{{ order['order_id'] }}"
-                  class="badge status-packing bg-primary"
-                  >Packing</span
-                >
-                {% elif order['status_id'] == 4 %}
-                <span
-                  id="status-{{ order['order_id'] }}"
-                  class="badge status-delivery bg-warning"
-                  >Delivery</span
-                >
-                {% elif order['status_id'] == 5 %}
-                <span
-                  id="status-{{ order['order_id'] }}"
-                  class="badge status-success bg-success"
-                  >Complete</span
-                >
-                {% elif order['status_id'] == 6 %}
-                <span
-                  id="status-{{ order['order_id'] }}"
-                  class="badge status-failed bg-danger"
-                  >Cancelled</span
-                >
-                {% else %}
-                <span
-                  id="status-{{ order['order_id'] }}"
-                  class="badge bg-secondary"
-                  >Unknown</span
-                >
-                {% endif %}
-              </td>
-              <td>
-                <div class="action-buttons d-flex flex-wrap gap-1">
-                  <button
-                    class="btn btn-info btn-sm"
-                    onclick="changeStatus('status-{{ order['order_id'] }}', 'Processing', '{{ order['order_id'] }}')"
-                  >
-                    <i class="fas fa-cog me-1"></i><span>Processing</span>
+            {% if orders and orders|length > 0 %}
+              {% for order in orders %}
+              <tr data-order-id="{{ order['order_id'] }}" data-status="{{ order['status_id'] }}" class="order-row">
+                
+                <!-- Order ID -->
+                <td class="order-id">
+                  <span class="badge bg-light text-dark">#{{ order['order_id'] }}</span>
+                </td>
+                
+                <!-- Customer Name -->
+                <td class="customer-name">
+                  <div class="customer-info">
+                    <i class="fas fa-user-circle text-primary me-2"></i>
+                    <span>{{ order['customer_name'] or 'ไม่ระบุ' }}</span>
+                  </div>
+                </td>
+                
+                <!-- Description -->
+                <td class="order-description description-col">
+                  <div class="description-text" title="{{ order['description'] or 'ไม่มีรายละเอียด' }}">
+                    {{ order['description'] or 'ไม่มีรายละเอียด' }}
+                  </div>
+                </td>
+                
+                <!-- Date -->
+                <td class="order-date">
+                  <small class="text-muted">
+                    <i class="far fa-calendar-alt me-1"></i>{{ order['order_date'] }}
+                  </small>
+                </td>
+                
+                <!-- Status -->
+                <td class="text-center">
+                  {% if order['status_id'] == 1 %}
+                    <span id="status-{{ order['order_id'] }}" class="badge status-pending bg-secondary">Pending</span>
+                  {% elif order['status_id'] == 2 %}
+                    <span id="status-{{ order['order_id'] }}" class="badge status-processing bg-info">Processing</span>
+                  {% elif order['status_id'] == 3 %}
+                    <span id="status-{{ order['order_id'] }}" class="badge status-packing bg-primary">Packing</span>
+                  {% elif order['status_id'] == 4 %}
+                    <span id="status-{{ order['order_id'] }}" class="badge status-delivery bg-warning">Delivery</span>
+                  {% elif order['status_id'] == 5 %}
+                    <span id="status-{{ order['order_id'] }}" class="badge status-success bg-success">Complete</span>
+                  {% elif order['status_id'] == 6 %}
+                    <span id="status-{{ order['order_id'] }}" class="badge status-failed bg-danger">Cancelled</span>
+                  {% else %}
+                    <span id="status-{{ order['order_id'] }}" class="badge bg-secondary">Unknown</span>
+                  {% endif %}
+                </td>
+                
+                <!-- Images -->
+                <td class="text-center">
+                  {% set bill_url = url_for('static', filename='images/payment/' + (order['bill_img'] or 'dummy.jpg')) %}
+                  {% set product_url = url_for('static', filename='images/products/' + (order['img'] or 'dummy.jpg')) %}
+                  <button class="btn btn-sm btn-outline-info" onclick="viewImages('{{ bill_url }}', '{{ product_url }}')" title="ดูรูปภาพ">
+                    <i class="fas fa-images"></i>
                   </button>
-                  <button
-                    class="btn btn-primary btn-sm"
-                    onclick="changeStatus('status-{{ order['order_id'] }}', 'Packing', '{{ order['order_id'] }}')"
-                  >
-                    <i class="fas fa-box me-1"></i><span>Packing</span>
-                  </button>
-                  <button
-                    class="btn btn-warning btn-sm"
-                    onclick="changeStatus('status-{{ order['order_id'] }}', 'Delivery', '{{ order['order_id'] }}')"
-                  >
-                    <i class="fas fa-shipping-fast me-1"></i><span>Delivery</span>
-                  </button>
-                  <button
-                    class="btn btn-success btn-sm"
-                    onclick="changeStatus('status-{{ order['order_id'] }}', 'Complete', '{{ order['order_id'] }}')"
-                  >
-                    <i class="fas fa-check me-1"></i><span>Complete</span>
-                  </button>
-                  <button
-                    class="btn btn-danger btn-sm"
-                    onclick="changeStatus('status-{{ order['order_id'] }}', 'Cancelled', '{{ order['order_id'] }}')"
-                  >
-                    <i class="fas fa-times me-1"></i><span>Cancelled</span>
-                  </button>
-                </div>
-              </td>
-            </tr>
-            {% endfor %} {% else %}
-            <tr>
-              <td colspan="7" class="text-center py-4">
-                <i class="fas fa-clipboard-list text-muted me-2"></i>
-                ไม่มีคำสั่งซื้อในระบบ
-              </td>
-            </tr>
+                </td>
+                
+                <!-- Actions -->
+                <td class="text-center">
+                  <div class="action-buttons d-flex flex-wrap gap-1">
+                    <button class="btn btn-info btn-sm" onclick="changeStatus('status-{{ order['order_id'] }}', 'Processing', '{{ order['order_id'] }}')">
+                      <i class="fas fa-cog me-1"></i><span>Processing</span>
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="changeStatus('status-{{ order['order_id'] }}', 'Packing', '{{ order['order_id'] }}')">
+                      <i class="fas fa-box me-1"></i><span>Packing</span>
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="changeStatus('status-{{ order['order_id'] }}', 'Delivery', '{{ order['order_id'] }}')">
+                      <i class="fas fa-shipping-fast me-1"></i><span>Delivery</span>
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="changeStatus('status-{{ order['order_id'] }}', 'Complete', '{{ order['order_id'] }}')">
+                      <i class="fas fa-check me-1"></i><span>Complete</span>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="changeStatus('status-{{ order['order_id'] }}', 'Cancelled', '{{ order['order_id'] }}')">
+                      <i class="fas fa-times me-1"></i><span>Cancelled</span>
+                    </button>
+                  </div>
+                </td>
+                
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr class="no-orders-row">
+                <td colspan="7" class="text-center py-5">
+                  <div class="empty-state">
+                    <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">ไม่มีคำสั่งซื้อในระบบ</h4>
+                    <p class="text-muted">คำสั่งซื้อจะแสดงที่นี่เมื่อมีการสั่งซื้อใหม่</p>
+                  </div>
+                </td>
+              </tr>
             {% endif %}
           </tbody>
         </table>
       </div>
     </div>
+    
   </div>
+</div>
 
-  <!-- Image Modal -->
-  <div
-    class="modal fade"
-    id="imageModal"
-    tabindex="-1"
-    aria-labelledby="imageModalLabel"
-    aria-hidden="true"
-  >
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title" id="imageModalLabel">
-            <i class="fas fa-images me-2"></i>รูปภาพ
-          </h5>
-          <button
-            type="button"
-            class="btn-close btn-close-white"
-            data-bs-dismiss="modal"
-            aria-label="Close"
-          ></button>
-        </div>
-        <div class="modal-body">
-          <div class="images-grid">
-            <div class="image-card">
-              <h3 class="text-center mb-3">ใบเสร็จชำระเงิน</h3>
-              <div class="image-container">
-                <img
-                  id="billImage"
-                  class="modal-image img-fluid rounded"
-                  alt="Payment Receipt"
-                />
-              </div>
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="imageModalLabel">
+          <i class="fas fa-images me-2"></i>รูปภาพ
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="images-grid">
+          <div class="image-card">
+            <h3 class="text-center mb-3">ใบเสร็จชำระเงิน</h3>
+            <div class="image-container">
+              <img id="billImage" class="modal-image img-fluid rounded" alt="Payment Receipt"/>
             </div>
-            <div class="image-card">
-              <h3 class="text-center mb-3">รูปสินค้า</h3>
-              <div class="image-container">
-                <img
-                  id="productImage"
-                  class="modal-image img-fluid rounded"
-                  alt="Product Image"
-                />
-              </div>
+          </div>
+          <div class="image-card">
+            <h3 class="text-center mb-3">รูปสินค้า</h3>
+            <div class="image-container">
+              <img id="productImage" class="modal-image img-fluid rounded" alt="Product Image"/>
             </div>
           </div>
         </div>
@@ -191,6 +215,9 @@
     </div>
   </div>
 </div>
-{% endblock %} {% block extra_js %}
+
+{% endblock %}
+
+{% block extra_js %}
 <script src="{{ url_for('static', filename='js/packing.js') }}"></script>
 {% endblock %}
