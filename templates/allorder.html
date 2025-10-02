@@ -57,21 +57,10 @@
                 <tr>
                   <td><strong>{{ order['order_id'] }}</strong></td>
                   <td>
-                    {% if order['items'] %} {% for item in order['items'] %} {{
-                    item['name'] }}{% if not loop.last %}, {% endif %} {% endfor
-                    %} {% else %} No items {% endif %}
+                    {{ order['product_name'] or 'ไม่ระบุ' }}
                   </td>
                   <td>
-                    {% if order['items'] %} {% for item in order['items'] %}
-                    <div class="item-detail">
-                      {{ item['detail'] or 'No specifications' }} {% if not
-                      loop.last %}
-                      <hr class="my-1" />
-                      {% endif %}
-                    </div>
-                    {% endfor %} {% else %}
-                    <span class="text-muted">No details available</span>
-                    {% endif %}
+                    {{ order['description'] or 'ไม่มีรายละเอียด' }}
                   </td>
                   <td>{{ order['order_date'] }}</td>
                   <td>
@@ -87,21 +76,24 @@
                       'Unknown' }}
                     </span>
                   </td>
-                  <td><strong>฿{{ order['total'] }}</strong></td>
+                  <td><strong>฿{{ "%.2f"|format(order['total_amount']) }}</strong></td>
                   <td class="text-center">
+                    {% if order['bill_img'] %}
                     <button
                       class="btn btn-outline-purple btn-sm"
-                      data-bill="{{ order['bill'] }}"
-                      data-custom="{{ order['custom'] }}"
-                      onclick="viewImages('/static/images/payment/' + this.dataset.bill, '/static/images/custom/' + this.dataset.custom)"
+                      data-bill="{{ order['bill_img'] }}"
+                      onclick="viewImages('/static/images/payment/' + this.dataset.bill, '')"
                     >
                       <i class="fas fa-images me-1"></i> ดู
                     </button>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
                   </td>
                   <td class="text-center">
                     <a
                       class="btn btn-primary btn-sm"
-                      href="{{ url_for('tracking', order_id=order['order_id']) }}"
+                      href="{{ url_for('tracking') }}?order_id={{ order['order_id'] }}"
                     >
                       <i class="fas fa-search me-1"></i>รายละเอียด
                     </a>

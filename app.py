@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from functools import wraps
 import requests
 import json
@@ -230,7 +230,7 @@ def logout():
     """ออกจากระบบ"""
     username = session.get('username', 'ผู้ใช้')
     session.clear()
-    flash(f'�� ออกจากระบบแล้ว ลาก่อน {username}!', 'info')
+    flash(f'ออกจากระบบแล้ว ลาก่อน {username}!', 'info')
     return redirect(url_for('home'))
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -324,15 +324,28 @@ def cart():
 @customer_or_above
 def all_orders():
     """คำสั่งซื้อทั้งหมด"""
-    sample_orders = [
-        {
-            'order_id': 'ORD001',
-            'items': [{'name': 'Custom Art Print', 'detail': 'A4 size'}],
-            'order_date': '2025-09-10',
-            'status_id': 2,
-            'total': 1500.00
-        }
-    ]
+    try:
+        user_id = session.get('user_id')
+        role_id = session.get('role_id', 3)
+        
+        # Build API URL with parameters
+        params = {'role_id': role_id}
+        if role_id == 3:  # Customer - only see their own orders
+            params['user_id'] = user_id
+        
+        response = requests.get(f'{API_BASE_URL}/orders', params=params, timeout=10)
+        result = response.json()
+        
+        if result.get('success'):
+            orders = result.get('data', [])
+        else:
+            flash('❌ ไม่สามารถโหลดข้อมูลคำสั่งซื้อได้', 'error')
+            orders = []
+    
+    except Exception as e:
+        print(f"Error fetching orders: {e}")
+        flash('❌ เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error')
+        orders = []
     
     status_labels = {
         1: 'รอการยืนยัน',
@@ -342,7 +355,7 @@ def all_orders():
         5: 'ยกเลิก'
     }
     
-    return render_template('allorder.html', orders=sample_orders, status_labels=status_labels)
+    return render_template('allorder.html', orders=orders, status_labels=status_labels)
 
 @app.route('/tracking', methods=['GET', 'POST'])
 @customer_or_above
@@ -352,11 +365,32 @@ def tracking():
     message = None
     
     if request.method == 'POST':
-        order_id = request.form.get('order_id', '').strip().upper()
+        order_id = request.form.get('order_id', '').strip()
         if not order_id:
             message = 'กรุณาใส่หมายเลขคำสั่งซื้อ'
         else:
-            message = f'ไม่พบคำสั่งซื้อหมายเลข {order_id}'
+            try:
+                # Call API to get order details
+                response = requests.get(f'{API_BASE_URL}/orders/{order_id}', timeout=10)
+                result = response.json()
+                
+                if result.get('success'):
+                    order = result.get('data')
+                    # Add Thai status label
+                    status_labels = {
+                        1: 'รอการยืนยัน',
+                        2: 'รอการแพ็คสินค้า',
+                        3: 'กำลังแพ็คสินค้า',
+                        4: 'สำเร็จ',
+                        5: 'ยกเลิก'
+                    }
+                    order['status_label'] = status_labels.get(order.get('status_id'), 'ไม่ทราบสถานะ')
+                else:
+                    message = f'ไม่พบคำสั่งซื้อหมายเลข {order_id}'
+            
+            except Exception as e:
+                print(f"Error fetching order: {e}")
+                message = 'เกิดข้อผิดพลาดในการค้นหาคำสั่งซื้อ'
     
     return render_template('tracking.html', order=order, message=message)
 
@@ -401,21 +435,71 @@ def add_product():
     flash('✅ เพิ่มสินค้าสำเร็จ!', 'success')
     return redirect(url_for('manage_products'))
 
+@app.route('/update-order-status', methods=['POST'])
+@staff_or_above
+def update_order_status():
+    """อัพเดทสถานะคำสั่งซื้อ"""
+    try:
+        data = request.get_json()
+        order_id = data.get('order_id')
+        status_id = data.get('status_id')
+        
+        if not order_id or not status_id:
+            return jsonify({
+                'success': False,
+                'message': 'Missing order_id or status_id'
+            }), 400
+        
+        # Call API to update order status
+        response = requests.patch(
+            f'{API_BASE_URL}/orders/{order_id}',
+            json={'status_id': status_id},
+            timeout=10
+        )
+        result = response.json()
+        
+        if result.get('success'):
+            return jsonify({
+                'success': True,
+                'message': 'อัพเดทสถานะสำเร็จ',
+                'data': result.get('data')
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': result.get('message', 'ไม่สามารถอัพเดทสถานะได้')
+            }), 400
+    
+    except Exception as e:
+        print(f"Error updating order status: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'เกิดข้อผิดพลาดในการอัพเดทสถานะ'
+        }), 500
+
 @app.route('/packing')
 @staff_or_above
 def packing():
     """จัดการแพ็คสินค้า"""
-    sample_orders = [
-        {
-            'order_id': 1,
-            'customer': 'นาย สมชาย ใจดี',
-            'description': 'งานพิมพ์โปสเตอร์',
-            'order_date': '2024-03-15',
-            'status': 2
-        }
-    ]
+    try:
+        # Get orders that need packing (status 2 or 3)
+        response = requests.get(f'{API_BASE_URL}/orders', timeout=10)
+        result = response.json()
+        
+        if result.get('success'):
+            all_orders = result.get('data', [])
+            # Filter for orders that are waiting for packing or being packed
+            orders = [order for order in all_orders if order.get('status_id') in [2, 3]]
+        else:
+            flash('❌ ไม่สามารถโหลดข้อมูลคำสั่งซื้อได้', 'error')
+            orders = []
     
-    return render_template('packing.html', orders=sample_orders)
+    except Exception as e:
+        print(f"Error fetching orders for packing: {e}")
+        flash('❌ เกิดข้อผิดพลาดในการโหลดข้อมูล', 'error')
+        orders = []
+    
+    return render_template('packing.html', orders=orders)
 
 # ===== PROTECTED ROUTES - GOD ONLY =====
 

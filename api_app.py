@@ -1,11 +1,14 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, User, UserInfo, Role
+from models import db, User, UserInfo, Role, Order, OrderStatus, Product, get_thai_time
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import os
 from dotenv import load_dotenv
+
+# Thai timezone (UTC+7)
+THAI_TZ = timezone(timedelta(hours=7))
 
 # Load environment variables
 load_dotenv()
@@ -63,7 +66,7 @@ def health_check():
     return jsonify({
         'success': True,
         'message': 'EchoArty API is running',
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': get_thai_time().isoformat()
     }), 200
 
 @app.route('/api/register', methods=['POST'])
@@ -125,7 +128,7 @@ def api_register():
             email=email,
             password=hashed_password,
             role_id=3,  # Regular user
-            created_at=datetime.utcnow()
+            created_at=get_thai_time()
         )
         
         db.session.add(new_user)
@@ -357,54 +360,263 @@ def api_get_roles():
             'error': str(e)
         }), 500
 
-@app.route('/api/update-order-status', methods=['POST'])
-def update_order_status():
-    """API route to update order status"""
+@app.route('/api/orders', methods=['GET'])
+def api_get_orders():
+    """API endpoint to get orders (filtered by user or all for staff/admin)"""
+    try:
+        # Get query parameters
+        user_id = request.args.get('user_id', type=int)
+        status_id = request.args.get('status_id', type=int)
+        role_id = request.args.get('role_id', type=int)  # For permission checking
+        
+        # Build query
+        query = Order.query
+        
+        # Filter by user_id if provided (for customers viewing their own orders)
+        if user_id and role_id == 3:  # Customer role
+            query = query.filter_by(u_id=user_id)
+        
+        # Filter by status if provided
+        if status_id:
+            query = query.filter_by(status_id=status_id)
+        
+        # Execute query and get orders
+        orders = query.order_by(Order.order_date.desc()).all()
+        
+        # Convert to dictionary format
+        orders_data = [order.to_dict() for order in orders]
+        
+        return jsonify({
+            'success': True,
+            'data': orders_data,
+            'count': len(orders_data)
+        }), 200
+        
+    except Exception as e:
+        app.logger.error(f"API Get orders error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to fetch orders',
+            'error': str(e)
+        }), 500
+
+@app.route('/api/orders/<int:order_id>', methods=['GET'])
+def api_get_order(order_id):
+    """API endpoint to get a specific order by ID"""
+    try:
+        order = Order.query.get(order_id)
+        
+        if not order:
+            return jsonify({
+                'success': False,
+                'message': 'Order not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': order.to_dict()
+        }), 200
+        
+    except Exception as e:
+        app.logger.error(f"API Get order error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to fetch order',
+            'error': str(e)
+        }), 500
+
+@app.route('/api/orders', methods=['POST'])
+def api_create_order():
+    """API endpoint to create a new order"""
     try:
         data = request.get_json()
-        order_id = data.get('orderId')
-        status = data.get('status')
         
-        if not order_id or not status:
+        if not data:
             return jsonify({
                 'success': False,
-                'message': 'Missing orderId or status'
+                'message': 'No data provided'
             }), 400
         
-        # Convert status to number
-        status_map = {
-            'Waiting for packing': 2,
-            'Packing': 3,
-            'Success': 4,
-            'Failed': 5
-        }
+        # Validation
+        required_fields = ['u_id', 'p_id', 'total_amount', 'shipping_address']
+        missing_fields = [field for field in required_fields if field not in data]
         
-        status_code = status_map.get(status)
-        if status_code is None:
+        if missing_fields:
             return jsonify({
                 'success': False,
-                'message': 'Invalid status'
+                'message': 'Missing required fields',
+                'missing_fields': missing_fields
             }), 400
         
-        # TODO: Add actual database update logic here
-        # For demo purposes, just return success
-        print(f"Updating order {order_id} to status {status} ({status_code})")
+        # Verify user exists
+        user = User.query.get(data['u_id'])
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': 'User not found'
+            }), 404
+        
+        # Verify product exists
+        product = Product.query.get(data['p_id'])
+        if not product:
+            return jsonify({
+                'success': False,
+                'message': 'Product not found'
+            }), 404
+        
+        # Create new order
+        new_order = Order(
+            u_id=data['u_id'],
+            p_id=data['p_id'],
+            total_amount=data['total_amount'],
+            shipping_address=data['shipping_address'],
+            status_id=data.get('status_id', 1),  # Default to status 1 (pending)
+            bill_img=data.get('bill_img')
+        )
+        
+        db.session.add(new_order)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Order created successfully',
+            'data': new_order.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"API Create order error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to create order',
+            'error': str(e)
+        }), 500
+
+@app.route('/api/orders/<int:order_id>', methods=['PATCH'])
+def api_update_order_status(order_id):
+    """API endpoint to update order status"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'status_id' not in data:
+            return jsonify({
+                'success': False,
+                'message': 'Missing status_id in request'
+            }), 400
+        
+        # Find order
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({
+                'success': False,
+                'message': 'Order not found'
+            }), 404
+        
+        # Verify status exists
+        status = OrderStatus.query.get(data['status_id'])
+        if not status:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid status_id'
+            }), 400
+        
+        # Update order status
+        order.status_id = data['status_id']
+        db.session.commit()
         
         return jsonify({
             'success': True,
             'message': 'Order status updated successfully',
-            'data': {
-                'orderId': order_id,
-                'status': status,
-                'statusCode': status_code
-            }
-        })
+            'data': order.to_dict()
+        }), 200
         
     except Exception as e:
-        print(f"Error updating order status: {e}")
+        db.session.rollback()
+        app.logger.error(f"API Update order status error: {e}")
         return jsonify({
             'success': False,
-            'message': 'Internal server error'
+            'message': 'Failed to update order status',
+            'error': str(e)
+        }), 500
+
+@app.route('/api/order-statuses', methods=['GET'])
+def api_get_order_statuses():
+    """API endpoint to get all order statuses"""
+    try:
+        statuses = OrderStatus.query.all()
+        statuses_data = [{
+            's_id': status.s_id,
+            'status_name': status.name
+        } for status in statuses]
+        
+        return jsonify({
+            'success': True,
+            'data': statuses_data,
+            'count': len(statuses_data)
+        }), 200
+        
+    except Exception as e:
+        app.logger.error(f"API Get order statuses error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to fetch order statuses',
+            'error': str(e)
+        }), 500
+
+@app.route('/api/products', methods=['GET'])
+def api_get_products():
+    """API endpoint to get all products"""
+    try:
+        products = Product.query.all()
+        products_data = [{
+            'p_id': product.p_id,
+            'product_name': product.name,
+            'description': product.description,
+            'price': float(product.price)
+        } for product in products]
+        
+        return jsonify({
+            'success': True,
+            'data': products_data,
+            'count': len(products_data)
+        }), 200
+        
+    except Exception as e:
+        app.logger.error(f"API Get products error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to fetch products',
+            'error': str(e)
+        }), 500
+
+@app.route('/api/products/<int:product_id>', methods=['GET'])
+def api_get_product(product_id):
+    """API endpoint to get a specific product"""
+    try:
+        product = Product.query.get(product_id)
+        
+        if not product:
+            return jsonify({
+                'success': False,
+                'message': 'Product not found'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'p_id': product.p_id,
+                'product_name': product.name,
+                'description': product.description,
+                'price': float(product.price)
+            }
+        }), 200
+        
+    except Exception as e:
+        app.logger.error(f"API Get product error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to fetch product',
+            'error': str(e)
         }), 500
 
 # Error handlers
