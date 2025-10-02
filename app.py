@@ -142,13 +142,64 @@ def home():
 
 @app.route('/gallery')
 def gallery():
-    """แกลเลอรี่ - เข้าได้ทุกคน"""
-    return render_template('gallery.html')
+    """Gallery page route - consumes API"""
+    products_data = []
+    try:
+        # 1. เรียกใช้งาน API endpoint /api/gallery
+        response = requests.get(f'{API_BASE_URL}/gallery')
+        response.raise_for_status()  # เช็คว่า request สำเร็จหรือไม่ (status code 2xx)
 
-@app.route('/gallery/detail')
-def gallery_detail():
-    """รายละเอียดแกลเลอรี่ - เข้าได้ทุกคน"""
-    return render_template('gallerydetail.html')
+        result = response.json()
+
+        # 2. ตรวจสอบว่า API ส่งข้อมูลกลับมาสำเร็จหรือไม่
+        if result.get('success'):
+            products_data = result.get('data', [])
+            print("--- [Frontend] Data received by gallery() route ---")
+            print(json.dumps(products_data, indent=2, ensure_ascii=False))
+        else:
+            flash(result.get('message', 'Could not load gallery items.'), 'error')
+
+    except requests.exceptions.RequestException as e:
+        # แสดง Error กรณีเชื่อมต่อ API Server ไม่ได้
+        flash('Error connecting to the API server. Please make sure it is running.', 'error')
+    except Exception as e:
+        flash(f'An unexpected error occurred: {e}', 'error')
+
+    # 3. ส่งตัวแปร products_data (ที่ได้จาก API) ไปให้ gallery.html
+    return render_template('gallery.html', products=products_data, url_for_detail=url_for('gallery_detail', p_id=0))
+
+@app.route('/gallery/detail/<int:p_id>')
+def gallery_detail(p_id):
+    """Gallery detail page route - consumes API"""
+    product = None
+    try:
+        # 1. เรียกใช้งาน API endpoint /api/gallery/detail/<p_id>
+        response = requests.get(f'{API_BASE_URL}/gallery/detail/{p_id}')
+        response.raise_for_status()  # เช็คว่า request สำเร็จหรือไม่ (status code 2xx)
+
+        result = response.json()
+
+        # 2. ตรวจสอบว่า API ส่งข้อมูลกลับมาสำเร็จหรือไม่
+        if result.get('success'):
+            product = result.get('data')
+            print(f"--- [Frontend] Data received for product {p_id} ---\n{json.dumps(product, indent=2, ensure_ascii=False)}")
+        else:
+            flash(result.get('message', 'Could not load product details.'), 'error')
+            # หากไม่สำเร็จ ให้ redirect กลับไปหน้า gallery หรือ 404
+            return redirect(url_for('not_found_error', error='Product not found'), 404) 
+
+    except requests.exceptions.HTTPError as e:
+        # หาก status code เป็น 404
+        if e.response.status_code == 404:
+            flash("Product not found.", 'error')
+            return redirect(url_for('not_found_error', error='Product not found'), 404)
+        flash(f'API HTTP Error: {e}', 'error')
+    except requests.exceptions.RequestException as e:
+        # แสดง Error กรณีเชื่อมต่อล้มเหลว
+        flash(f'Connection Error: Cannot connect to API backend. ({e})', 'error')
+
+    # ส่งข้อมูล product ไปยัง template
+    return render_template('gallerydetail.html', product=product)
 
 @app.route('/about')
 def about():
@@ -396,37 +447,30 @@ def tracking():
     
     return render_template('tracking.html', order=order, message=message)
 
-# ===== PROTECTED ROUTES - STAFF AND ABOVE =====
-
-@app.route('/manage-products')
-@staff_or_above
-def manage_products():
-    """จัดการสินค้า"""
-    sample_products = [
-        {
-            'id': 1,
-            'name': 'Custom Art Print',
-            'description': 'High-quality artwork',
-            'price': 1500.00,
-            'amount': 25,
-            'size': 'A4'
-        }
-    ]
-    
-    sample_categories = [
-        {'id': 1, 'name': 'Custom Artwork'},
-        {'id': 2, 'name': 'Digital Design'}
-    ]
-    
-    return render_template('manageproduct.html', products=sample_products, categories=sample_categories)
+@app.route('/manage-product')
+def manage_product():
+    """Management page route - โหลดหน้าจัดการสินค้า"""
+    categories = []
+    try:
+        # เรียก API เพื่อดึงข้อมูล categories
+        response = requests.get(f'{API_BASE_URL}/categories')
+        if response.ok:
+            result = response.json()
+            if result.get('success'):
+                categories = result.get('data', [])
+    except Exception as e:
+        print(f"Error fetching categories: {e}")
+        
+    # ส่ง categories ไปให้ template
+    return render_template('manageproduct.html', categories=categories)
 
 @app.route('/manage-products/<int:category_id>')
 @staff_or_above
 def manage_products_by_category(category_id):
-    """จัดการสินค้าตามหมวดหมู่"""
-    # In a real application, filter products by category_id
-    # For now, return the same view as manage_products
-    return manage_products()
+    
+    # This would filter products by category in a real implementation
+    # For now, return the same data
+    return manage_product()
 
 @app.route('/add-product', methods=['POST'])
 @staff_or_above

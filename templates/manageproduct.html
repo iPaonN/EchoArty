@@ -53,7 +53,6 @@
             <th><i class="fas fa-align-left me-2"></i>รายละเอียด</th>
             <th><i class="fas fa-tag me-2"></i>ราคา</th>
             <th><i class="fas fa-expand me-2"></i>อัตราส่วน</th>
-            <th><i class="fas fa-cubes me-2"></i>จำนวนคงเหลือ</th>
             <th><i class="fas fa-image me-2"></i>รูปภาพ</th>
             <th><i class="fas fa-tags me-2"></i>หมวดหมู่</th>
             <th style="text-align: center">
@@ -61,27 +60,26 @@
             </th>
           </tr>
         </thead>
-        <tbody>
-          {% if products and products|length > 0 %} {% for item in products %}
-          <tr data-product-id="{{ item.id }}">
-            <td style="text-align: center">{{ item.id }}</td>
-            <td class="product-name">{{ item.name }}</td>
-            <td class="product-description">{{ item.description }}</td>
-            <td class="product-price">฿{{ "%.2f"|format(item.price) }}</td>
-            <td class="product-size">{{ item.size or '1:1' }}</td>
-            <td class="product-amount">{{ item.amount }}</td>
+        <tbody id="productTableBody">
+          {% if products %} {% for product in products %}
+          <tr data-product-id="{{ product.p_id }}">
+            <td style="text-align: center">{{ product.p_id }}</td>
+            <td class="product-name">{{ product.name }}</td>
+            <td class="product-description">{{ product.description }}</td>
+            <td class="product-price">฿{{ "%.2f"|format(product.price) }}</td>
+            <td class="product-size">{{ product.size or '1:1' }}</td>
             <td>
               <img
-                src="{{ url_for('static', filename='images/products/' + (item.image or 'dummy.jpg')) }}"
-                alt="Product ID: {{ item.id }}"
+                src="{{ url_for('static', filename='images/products/' + product.image) }}"
+                alt="Product ID: {{ product.id }}"
                 class="product-image"
                 width="50"
               />
             </td>
             <td class="product-categories">
-              {% if item.categories and item.categories|length > 0 %}
+              {% if product.categories and product.categories|length > 0 %}
               <ul class="category-list">
-                {% for cat in item.categories %}
+                {% for cat in product.categories %}
                 <li>{{ cat.name }}</li>
                 {% endfor %}
               </ul>
@@ -93,13 +91,13 @@
               <div class="d-flex gap-2 justify-content-center flex-nowrap">
                 <button
                   class="btn btn-warning btn-sm edit-link"
-                  onclick="openEditModal('{{ item.id }}')"
+                  onclick="openEditModal('{{ product.p_id }}')"
                 >
                   <i class="fas fa-edit me-1"></i>แก้ไข
                 </button>
                 <button
                   class="btn btn-danger btn-sm remove-link"
-                  onclick="removeProduct('{{ item.id }}')"
+                  onclick="removeProduct('{{ product.p_id }}')"
                 >
                   <i class="fas fa-trash-alt me-1"></i>ลบ
                 </button>
@@ -140,14 +138,14 @@
     <div class="offcanvas-body">
       <div class="list-group">
         <a
-          href="{{ url_for('manage_products') }}"
+          href="{{ url_for('manage_product') }}"
           class="list-group-item list-group-item-action"
         >
           <i class="fas fa-th-large me-2"></i>ทั้งหมด
         </a>
         {% if categories %} {% for category in categories %}
         <a
-          href="{{ url_for('manage_products_by_category', category_id=category.id) }}"
+          href="{{ url_for('manage_products_by_category', category_id=category.c_id) }}"
           class="list-group-item list-group-item-action"
         >
           <i class="fas fa-tag me-2"></i>{{ category.name }}
@@ -179,7 +177,7 @@
           ></button>
         </div>
         <div class="modal-body">
-          <form id="editForm">
+          <form id="editForm" data-product-id="">
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
@@ -286,12 +284,12 @@
                         class="form-check-input"
                         type="checkbox"
                         name="category[]"
-                        value="{{ category.id }}"
-                        id="edit-category-{{ category.id }}"
+                        value="{{ category.c_id }}"
+                        id="edit-category-{{ category.c_id }}"
                       />
                       <label
                         class="form-check-label"
-                        for="edit-category-{{ category.id }}"
+                        for="edit-category-{{ category.c_id }}"
                       >
                         {{ category.name }}
                       </label>
@@ -470,12 +468,12 @@
                         class="form-check-input"
                         type="checkbox"
                         name="category[]"
-                        value="{{ category.id }}"
-                        id="add-category-{{ category.id }}"
+                        value="{{ category.c_id }}"
+                        id="add-category-{{ category.c_id }}"
                       />
                       <label
                         class="form-check-label"
-                        for="add-category-{{ category.id }}"
+                        for="add-category-{{ category.c_id }}"
                       >
                         {{ category.name }}
                       </label>

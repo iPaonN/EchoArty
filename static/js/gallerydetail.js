@@ -17,14 +17,28 @@ function decreaseQuantity() {
   }
 }
 
+function getBasePrice() {
+  const container = document.querySelector(".product-detail-container");
+  // อ่านค่า data-product-price และแปลงเป็นตัวเลข (float)
+  const price = parseFloat(container.getAttribute("data-product-price"));
+  return isNaN(price) ? 0 : price; // คืนค่า 0 ถ้าแปลงไม่ได้
+}
+
 // Price calculation function
 function updatePrice() {
   const quantity = parseInt(document.getElementById("quantity").value);
-  const basePrice = 800; // Updated base price
+  // ดึงราคาฐานจาก HTML
+  const basePrice = getBasePrice();
+  
+  if (basePrice === 0) {
+      console.error("ไม่พบราคาฐานสินค้า (basePrice is 0 or not found in data-attribute).");
+  }
+  
   const totalPrice = quantity * basePrice;
 
   // Update price displays
-  document.getElementById("unitPrice").textContent = basePrice + "฿";
+  // ใช้ basePrice ที่ดึงมาจาก database มาแสดง
+  document.getElementById("unitPrice").textContent = basePrice.toFixed(2) + "฿";
   document.getElementById("totalPrice").textContent =
     totalPrice.toFixed(2) + "฿";
 }

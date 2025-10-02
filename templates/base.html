@@ -109,8 +109,8 @@
             {% if user_perms.can_manage_products %}
             <li class="nav-item">
               <a
-                class="nav-link {% if request.endpoint == 'manage_products' %}active{% endif %}"
-                href="{{ url_for('manage_products') if url_for else '/manage-products' }}"
+                class="nav-link {% if request.endpoint == 'manage_product' %}active{% endif %}"
+                href="{{ url_for('manage_product') if url_for else '/manage-product' }}"
               >
                 <i class="fas fa-boxes me-1"></i>จัดการสินค้า
               </a>
