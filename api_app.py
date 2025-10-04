@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, User, UserInfo, Role, Order, OrderStatus, Product, get_thai_time, Category, ProductCategory
+from models import db, User, UserInfo, Role, Order, OrderStatus, Product, get_thai_time, Category, product_categories
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_

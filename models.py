@@ -57,6 +57,20 @@ class OrderStatus(db.Model):
     def __repr__(self):
         return f'<OrderStatus {self.name}>'
 
+class Category(db.Model):
+    __tablename__ = 'categories'
+    c_id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    
+    def __repr__(self):
+        return f'<Category {self.name}>'
+
+# Many-to-Many relationship table
+product_categories = db.Table('product_categories',
+    db.Column('p_id', db.Integer, db.ForeignKey('products.p_id'), primary_key=True),
+    db.Column('c_id', db.Integer, db.ForeignKey('categories.c_id'), primary_key=True)
+)
+
 class Product(db.Model):
     __tablename__ = 'products'
     p_id = db.Column(db.Integer, primary_key=True)
@@ -68,6 +82,10 @@ class Product(db.Model):
     created_at = db.Column(db.DateTime, nullable=True, default=get_thai_time)
     updated_at = db.Column(db.DateTime, nullable=True, default=get_thai_time, onupdate=get_thai_time)
     
+    # Many-to-Many relationship to Category
+    categories = db.relationship('Category', secondary=product_categories, 
+                                backref=db.backref('products', lazy='dynamic'))
+    
     def to_dict(self):
         """Convert product to dictionary"""
         return {
@@ -75,6 +93,7 @@ class Product(db.Model):
             'name': self.name,
             'description': self.description,
             'price': float(self.price) if self.price else 0,
+            'categories': [{'c_id': cat.c_id, 'name': cat.name} for cat in self.categories],
             'image': self.image,
             'size': self.size or '1:1',
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S') if self.created_at else None,
