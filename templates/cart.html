@@ -86,6 +86,7 @@ block extra_css %}
                           data-product-size="{{ item['size'] or '1:1' }}"
                           data-product-quantity="{{ item['quantity'] }}"
                           data-product-id="{{ item['product_id'] }}"
+                          data-product-details="{{ item.get('order_details', '') or item.get('description', '') }}"
                           title="ดูรายละเอียด"
                         >
                           <i class="fas fa-info-circle me-1"></i>รายละเอียด
@@ -118,15 +119,34 @@ block extra_css %}
         </div>
 
         <!-- Cart Total and Actions -->
-        {% if cart and cart|length > 0 %}
-        <div class="row mt-4 justify-content-center">
+        <div class="row mt-4 justify-content-center" style="display: none;">
           <div class="col-md-6 col-lg-4">
             <div class="card">
-              <div class="card-body text-center">
-                <h3 class="mb-3">
-                  <span class="text-muted">Total: </span>
-                  <span class="text-primary">฿{{ "%.2f"|format(total) }}</span>
-                </h3>
+              <div class="card-body">
+                <h4 class="text-center mb-4">
+                  <i class="fas fa-receipt me-2"></i>สรุปคำสั่งซื้อ
+                </h4>
+                
+                <!-- Subtotal -->
+                <div class="d-flex justify-content-between mb-2">
+                  <span><i class="fas fa-shopping-bag me-2"></i>ยอดรวมสินค้า:</span>
+                  <span id="cartSubtotal" class="fw-bold">฿0.00</span>
+                </div>
+                
+                <!-- Shipping -->
+                <div class="d-flex justify-content-between mb-2">
+                  <span><i class="fas fa-shipping-fast me-2"></i>ค่าจัดส่ง:</span>
+                  <span id="cartShipping" class="fw-bold">฿50.00</span>
+                </div>
+                
+                <hr>
+                
+                <!-- Total -->
+                <div class="d-flex justify-content-between mb-3">
+                  <span class="h5"><i class="fas fa-calculator me-2"></i>ยอดรวมทั้งหมด:</span>
+                  <span id="cartTotal" class="h5 text-success fw-bold">฿0.00</span>
+                </div>
+                
                 <div class="d-grid gap-2">
                   <a
                     href="{{ url_for('gallery') }}"
@@ -148,7 +168,6 @@ block extra_css %}
             </div>
           </div>
         </div>
-        {% endif %}
       </div>
     </div>
   </div>
@@ -300,7 +319,7 @@ block extra_css %}
               <p class="small text-muted">
                 สแกนรหัส QR นี้ด้วยแอพธนาคารที่รองรับ PromptPay
               </p>
-              <p class="promptpay-id">หมายเลข PromptPay: 0123456789</p>
+              <p class="promptpay-id">หมายเลข PromptPay: 0972073201</p>
             </div>
           </div>
 

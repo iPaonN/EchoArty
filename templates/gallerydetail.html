@@ -1,4 +1,4 @@
-{% extends "base.html" %} {% block title %}Figure Batman - Gallery Detail |
+{% extends "base.html" %} {% block title %}Figure Batman - Toy Detail |
 EchoArty{% endblock %} {% block extra_css %}
 <link
   rel="stylesheet"
@@ -7,18 +7,22 @@ EchoArty{% endblock %} {% block extra_css %}
 {% endblock %} {% block content %}
 <div class="product-detail-container thai-text"
   {% if product %}
+  data-product-id="{{ product.p_id }}"
+  data-product-name="{{ product.name }}"
   data-product-price="{{ product.price }}"
+  data-product-image="{{ product.image }}"
+  data-product-size="{{ product.size }}"
   {% endif %}
 >
   <div class="container">
-    <!-- Back to Gallery Button -->
+    <!-- Back to Toy Button -->
     <div class="row mb-3">
       <div class="col-12">
         <a
           href="{{ url_for('gallery') if url_for else '/gallery' }}"
           class="btn btn-outline-secondary"
         >
-          <i class="fas fa-arrow-left me-2"></i>กลับไปหน้า Gallery
+          <i class="fas fa-arrow-left me-2"></i>กลับไปหน้า Toy
         </a>
       </div>
     </div>
@@ -50,23 +54,10 @@ EchoArty{% endblock %} {% block extra_css %}
                   >กรุณากรอกข้อมูลรายละเอียดสินค้าที่ต้องการ
                 </p>
                 <form>
-                  <!-- Title field -->
-                  <div class="mb-3">
-                    <label for="orderTitle" class="form-label">
-                      <i class="fas fa-tag me-1"></i>รายละเอียด:
-                    </label>
-                    <input
-                      type="text"
-                      class="form-control"
-                      id="orderTitle"
-                      placeholder="ฟิกเกอร์ตัวละครที่ต้องการ"
-                    />
-                  </div>
-
                   <!-- Details textarea -->
                   <div class="mb-3">
                     <label for="orderDetails" class="form-label">
-                      <i class="fas fa-align-left me-1"></i>รายละเอียดเพิ่ม:
+                      <i class="fas fa-align-left me-1"></i>รายละเอียด:
                     </label>
                     <textarea
                       class="form-control"

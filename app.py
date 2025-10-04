@@ -142,7 +142,7 @@ def home():
 
 @app.route('/gallery')
 def gallery():
-    """Gallery page route - consumes API"""
+    """Toy page route - consumes API"""
     products_data = []
     try:
         # 1. เรียกใช้งาน API endpoint /api/gallery
@@ -170,7 +170,7 @@ def gallery():
 
 @app.route('/gallery/detail/<int:p_id>')
 def gallery_detail(p_id):
-    """Gallery detail page route - consumes API"""
+    """Toy detail page route - consumes API"""
     product = None
     try:
         # 1. เรียกใช้งาน API endpoint /api/gallery/detail/<p_id>
@@ -340,36 +340,16 @@ def register():
 @app.route('/cart')
 @customer_or_above
 def cart():
-    """ตะกร้าสินค้า"""
-    sample_cart_items = [
-        {
-            'product_id': 'PROD001',
-            'name': 'Custom Art Print - Portrait',
-            'description': 'High-quality personalized portrait artwork',
-            'price': 1500.00,
-            'quantity': 2,
-            'image': 'portrait_art.jpg'
-        }
-    ]
-    
-    subtotal = sum(item['price'] * item['quantity'] for item in sample_cart_items)
-    shipping = 50.00
-    total = subtotal + shipping
-    
-    cart_summary = {
-        'subtotal': subtotal,
-        'shipping': shipping,
-        'total': total,
-        'item_count': sum(item['quantity'] for item in sample_cart_items)
-    }
+    """ตะกร้าสินค้า - โหลดจาก localStorage ผ่าน JavaScript"""
+    # Cart จะถูกโหลดด้วย JavaScript จาก localStorage
+    # Template จะแสดงข้อความว่างเปล่าก่อน แล้ว JavaScript จะ render รายการสินค้า
     
     return render_template('cart.html', 
-                         cart=sample_cart_items,
-                         cart_items=sample_cart_items,
-                         cart_summary=cart_summary,
-                         total=total,
-                         subtotal=subtotal,
-                         shipping=shipping)
+                         cart=[],  # Empty cart - will be populated by JavaScript
+                         cart_items=[],
+                         total=0,
+                         subtotal=0,
+                         shipping=50.00)
 
 @app.route('/orders')
 @customer_or_above

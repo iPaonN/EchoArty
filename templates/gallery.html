@@ -1,13 +1,13 @@
-{% extends "base.html" %} {% block title %}Gallery - EchoArty{% endblock %} {%
+{% extends "base.html" %} {% block title %}Toy - EchoArty{% endblock %} {%
 block extra_css %}
 <style>
-  .gallery-container {
+  .toy-container {
     background: linear-gradient(135deg, #f8f9fa, #e9ecef);
     min-height: calc(100vh - 200px);
     padding: 30px 0;
   }
 
-  .gallery-card {
+  .toy-card {
     transition: all 0.3s ease;
     border: none;
     border-radius: 15px;
@@ -15,16 +15,16 @@ block extra_css %}
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   }
 
-  .gallery-card:hover {
+  .toy-card:hover {
     transform: translateY(-8px);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
   }
 
-  .gallery-card .card-img-top {
+  .toy-card .card-img-top {
     transition: transform 0.3s ease;
   }
 
-  .gallery-card:hover .card-img-top {
+  .toy-card:hover .card-img-top {
     transform: scale(1.05);
   }
 
@@ -58,21 +58,21 @@ block extra_css %}
   }
 </style>
 {% endblock %} {% block content %}
-<div class="gallery-container">
+<div class="toy-container">
   <div class="container my-5">
     <div class="row">
       <div class="col-lg-12">
-        <h1 class="mb-4"><i class="fas fa-images me-2"></i>Art Gallery</h1>
+        <h1 class="mb-4"><i class="fas fa-images me-2"></i>Toy Gallery</h1>
         <p class="lead mb-5">
           Discover amazing digital artworks from our talented community.
         </p>
 
-        <!-- Gallery Grid -->
+        <!-- Toy Grid -->
         <div class="row">
           {% if products %} {% for product in products %}
           <!-- Featured Figure Batman -->
           <div class="col-md-4 col-lg-3 mb-4">
-            <div class="card gallery-card h-100 featured-item">
+            <div class="card toy-card h-100 featured-item">
               <div class="featured-badge">
                 <i class="fas fa-star me-1"></i>Featured
               </div>

@@ -1,5 +1,6 @@
 // Cart page functionality for Flask/Bootstrap application
 document.addEventListener("DOMContentLoaded", function () {
+  loadCartFromLocalStorage();
   initializeCartFunctionality();
 });
 
@@ -11,22 +12,193 @@ function initializeCartFunctionality() {
   updateCartTotals();
 }
 
+// ======= LOAD CART FROM LOCALSTORAGE =======
+function loadCartFromLocalStorage() {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  
+  if (cart.length === 0) {
+    // Show empty cart message
+    const tbody = document.querySelector('tbody');
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="text-center py-4">
+            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+            <p class="text-muted">รถเข็นของคุณว่างเปล่า</p>
+            <a href="/gallery" class="btn btn-primary mt-2">
+              <i class="fas fa-shopping-bag me-2"></i>เริ่มช้อปปิ้งของเล่น
+            </a>
+          </td>
+        </tr>
+      `;
+    }
+    return;
+  }
+
+  // Render cart items
+  renderCartItems(cart);
+}
+
+function renderCartItems(cart) {
+  const tbody = document.querySelector('tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  
+  cart.forEach((item, index) => {
+    const row = document.createElement('tr');
+    row.setAttribute('data-product-id', item.product_id);
+    row.setAttribute('data-cart-index', index);
+    
+    row.innerHTML = `
+      <td>
+        <img
+          src="/static/images/products/${item.product_image || 'dummy.jpg'}"
+          alt="${item.product_name}"
+          class="cart-item-image"
+          style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;"
+        />
+      </td>
+      <td>${item.product_name}</td>
+      <td class="price-value">฿${parseFloat(item.product_price).toFixed(2)}</td>
+      <td>${item.product_size || '1:1'}</td>
+      <td class="text-center">
+        <div class="quantity-controls">
+          <button
+            class="btn btn-outline-danger btn-sm btn-decrease"
+            type="button"
+          >
+            <i class="fas fa-minus"></i>
+          </button>
+          <span class="quantity-value mx-2">${item.quantity}</span>
+          <button
+            class="btn btn-outline-success btn-sm btn-increase"
+            type="button"
+          >
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+      </td>
+      <td class="price-value">฿${parseFloat(item.product_price).toFixed(2)}</td>
+      <td class="subtotal-value">฿${(item.product_price * item.quantity).toFixed(2)}</td>
+      <td class="text-center">
+        <div class="d-flex gap-2 justify-content-center flex-nowrap">
+          <button
+            type="button"
+            class="btn btn-info btn-sm"
+            onclick="showDetailModal(this)"
+            data-product-name="${item.product_name}"
+            data-product-image="${item.product_image || 'dummy.jpg'}"
+            data-product-price="${item.product_price}"
+            data-product-size="${item.product_size || '1:1'}"
+            data-product-quantity="${item.quantity}"
+            data-product-id="${item.product_id}"
+            data-product-details="${item.order_details || ''}"
+            title="ดูรายละเอียด"
+          >
+            <i class="fas fa-info-circle me-1"></i>รายละเอียด
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger btn-sm btn-remove"
+            title="ลบสินค้า"
+          >
+            <i class="fas fa-trash-alt me-1"></i>ลบ
+          </button>
+        </div>
+      </td>
+    `;
+    
+    tbody.appendChild(row);
+  });
+
+  // Show cart totals section if items exist
+  showCartTotalsSection(cart.length > 0);
+  
+  // Re-initialize controls
+  setupQuantityControls();
+  updateCartTotals();
+}
+
+function showCartTotalsSection(show) {
+  const totalsSection = document.querySelector('.row.mt-4.justify-content-center');
+  if (totalsSection) {
+    totalsSection.style.display = show ? 'flex' : 'none';
+  }
+}
+
 // ======= QUANTITY CONTROLS =======
 function setupQuantityControls() {
   document.querySelectorAll(".quantity-controls").forEach((container) => {
     const decreaseBtn = container.querySelector(".btn-decrease");
     const increaseBtn = container.querySelector(".btn-increase");
-    const quantitySpan = container.querySelector(".quantity-value");
-    const productId = container.closest("tr").dataset.productId;
+    const row = container.closest("tr");
+    const cartIndex = parseInt(row.dataset.cartIndex);
 
-    decreaseBtn.addEventListener("click", () => {
-      updateQuantity(productId, -1, quantitySpan);
+    // Remove old listeners by cloning
+    const newDecreaseBtn = decreaseBtn.cloneNode(true);
+    const newIncreaseBtn = increaseBtn.cloneNode(true);
+    decreaseBtn.parentNode.replaceChild(newDecreaseBtn, decreaseBtn);
+    increaseBtn.parentNode.replaceChild(newIncreaseBtn, increaseBtn);
+
+    newDecreaseBtn.addEventListener("click", () => {
+      updateQuantityInCart(cartIndex, -1);
     });
 
-    increaseBtn.addEventListener("click", () => {
-      updateQuantity(productId, 1, quantitySpan);
+    newIncreaseBtn.addEventListener("click", () => {
+      updateQuantityInCart(cartIndex, 1);
     });
   });
+
+  // Setup remove buttons
+  document.querySelectorAll(".btn-remove").forEach((btn) => {
+    const row = btn.closest("tr");
+    const cartIndex = parseInt(row.dataset.cartIndex);
+    
+    // Remove old listener by cloning
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    newBtn.addEventListener("click", () => {
+      removeItemFromCart(cartIndex);
+    });
+  });
+}
+
+function updateQuantityInCart(cartIndex, change) {
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  
+  if (cartIndex < 0 || cartIndex >= cart.length) return;
+  
+  const newQuantity = Math.max(1, cart[cartIndex].quantity + change);
+  cart[cartIndex].quantity = newQuantity;
+  cart[cartIndex].subtotal = cart[cartIndex].product_price * newQuantity;
+  
+  // Save to localStorage
+  localStorage.setItem('cart', JSON.stringify(cart));
+  
+  // Re-render cart
+  renderCartItems(cart);
+}
+
+function removeItemFromCart(cartIndex) {
+  if (!confirm('คุณต้องการลบสินค้านี้ออกจากตะกร้าหรือไม่?')) return;
+  
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  
+  if (cartIndex < 0 || cartIndex >= cart.length) return;
+  
+  // Remove item
+  cart.splice(cartIndex, 1);
+  
+  // Save to localStorage
+  localStorage.setItem('cart', JSON.stringify(cart));
+  
+  // Show notification
+  showNotification('ลบสินค้าออกจากตะกร้าแล้ว', 'success');
+  
+  // Re-render cart
+  renderCartItems(cart);
 }
 
 function updateQuantity(productId, change, quantityElement) {
@@ -41,9 +213,6 @@ function updateQuantity(productId, change, quantityElement) {
 
   // Update cart totals
   updateCartTotals();
-
-  // Optional: Send to server (uncomment when backend is ready)
-  // updateQuantityOnServer(productId, newQuantity);
 }
 
 function updateItemSubtotal(productId, quantity) {
@@ -126,7 +295,7 @@ function generateQRCode(amount) {
   setTimeout(() => {
     qrContainer.innerHTML = `
             <div class="text-center">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=promptpay://0123456789/${amount}" 
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=promptpay://0972073201/${amount}" 
                      alt="QR Code for payment" class="img-fluid">
                 <div class="qr-info mt-2">
                     <small class="text-muted">สแกน QR Code เพื่อชำระเงิน</small>
@@ -158,30 +327,86 @@ function setupSlipUpload() {
   }
 }
 
-function submitPayment() {
+async function submitPayment() {
   const fileInput = document.getElementById("slipFile");
   if (!fileInput.files.length) {
     showNotification("กรุณาเลือกไฟล์หลักฐานการชำระเงิน", "warning");
     return;
   }
 
-  // Simulate payment submission
+  // Check if user is logged in
+  const userId = sessionStorage.getItem('user_id') || localStorage.getItem('user_id');
+  if (!userId) {
+    showNotification("กรุณาเข้าสู่ระบบก่อนทำการชำระเงิน", "warning");
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 2000);
+    return;
+  }
+
+  // Get cart items
+  const cart = JSON.parse(localStorage.getItem('cart')) || [];
+  if (cart.length === 0) {
+    showNotification("ตะกร้าสินค้าว่างเปล่า", "warning");
+    return;
+  }
+
+  // Get user info for shipping address
+  const userInfo = JSON.parse(sessionStorage.getItem('user_info') || localStorage.getItem('user_info') || '{}');
+  const shippingAddress = userInfo.street_address 
+    ? `${userInfo.street_address}, ${userInfo.city}, ${userInfo.postal_code}` 
+    : 'กรุณาระบุที่อยู่จัดส่ง';
+
   showNotification("กำลังส่งข้อมูล...", "info");
 
-  setTimeout(() => {
-    showNotification(
-      "ส่งหลักฐานการชำระเงินสำเร็จ! เรากำลังตรวจสอบการชำระเงินของคุณ",
-      "success"
-    );
+  try {
+    // Create checkout request
+    const response = await fetch('/api/cart/checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        u_id: parseInt(userId),
+        cart_items: cart,
+        shipping_address: shippingAddress
+      })
+    });
 
-    // Close modal after success
-    setTimeout(() => {
-      const modal = bootstrap.Modal.getInstance(
-        document.getElementById("qrModal")
+    const result = await response.json();
+
+    if (result.success) {
+      // Clear cart after successful checkout
+      localStorage.removeItem('cart');
+      
+      showNotification(
+        `สั่งซื้อสำเร็จ! สร้างออเดอร์ ${result.data.total_orders} รายการ`,
+        "success"
       );
-      if (modal) modal.hide();
-    }, 2000);
-  }, 1500);
+
+      // Close modal after success
+      setTimeout(() => {
+        const modal = bootstrap.Modal.getInstance(
+          document.getElementById("qrModal")
+        );
+        if (modal) modal.hide();
+        
+        // Redirect to orders page or reload
+        window.location.href = '/allorder';
+      }, 2000);
+    } else {
+      showNotification(
+        `เกิดข้อผิดพลาด: ${result.message}`,
+        "danger"
+      );
+    }
+  } catch (error) {
+    console.error('Checkout error:', error);
+    showNotification(
+      "เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง",
+      "danger"
+    );
+  }
 }
 
 function previewSlip(file, container) {
@@ -326,6 +551,7 @@ function showDetailModal(button) {
       size: button.getAttribute("data-product-size") || "1:1",
       quantity: parseInt(button.getAttribute("data-product-quantity")) || 1,
       product_id: button.getAttribute("data-product-id") || "",
+      details: button.getAttribute("data-product-details") || "",
     };
 
     // Debug logging
@@ -378,14 +604,18 @@ function showDetailModal(button) {
       modalProductTotal.textContent = total;
     }
 
-    // Set product description (default message for now)
+    // Set product description from order_details
     const modalProductDetail = modal.querySelector("#modalProductDetail");
     if (modalProductDetail) {
-      modalProductDetail.textContent = `รายละเอียดสินค้า ${
-        productData.name
-      } - ขนาดอัตราส่วน ${productData.size} ราคา ฿${productData.price.toFixed(
-        2
-      )} ต่อชิ้น`;
+      if (productData.details && productData.details.trim() !== '') {
+        modalProductDetail.textContent = productData.details;
+      } else {
+        modalProductDetail.textContent = `รายละเอียดสินค้า ${
+          productData.name
+        } - ขนาดอัตราส่วน ${productData.size} ราคา ฿${productData.price.toFixed(
+          2
+        )} ต่อชิ้น`;
+      }
     }
 
     // Show the modal

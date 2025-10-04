@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `u_id` int(11) NOT NULL,
   `p_id` int(11) NOT NULL,
   `order_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `quantity` int(11) NOT NULL DEFAULT 1,
   `total_amount` decimal(10,2) NOT NULL,
   `status_id` int(11) NOT NULL DEFAULT 1,
   `shipping_address` text NOT NULL,
@@ -56,8 +57,8 @@ CREATE TABLE IF NOT EXISTS `orders` (
 
 -- Dumping data for table echoart.orders: ~1 rows (approximately)
 DELETE FROM `orders`;
-INSERT INTO `orders` (`order_id`, `u_id`, `p_id`, `order_date`, `total_amount`, `status_id`, `shipping_address`, `description`, `img`, `bill_img`) VALUES
-	(2, 21, 1, '2025-10-02 08:08:22', 1.00, 5, '170 soi 55 japan', 'this is batman', NULL, NULL);
+INSERT INTO `orders` (`order_id`, `u_id`, `p_id`, `order_date`, `quantity`, `total_amount`, `status_id`, `shipping_address`, `description`, `img`, `bill_img`) VALUES
+	(2, 21, 1, '2025-10-02 08:08:22', 1, 1.00, 5, '170 soi 55 japan', 'this is batman', NULL, NULL);
 
 -- Dumping structure for table echoart.order_statuses
 DROP TABLE IF EXISTS `order_statuses`;

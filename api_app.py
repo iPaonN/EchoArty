@@ -626,11 +626,117 @@ def api_get_products():
             'error': str(e)
         }), 500
 
+@app.route('/api/cart/checkout', methods=['POST'])
+def api_cart_checkout():
+    """API endpoint to checkout cart and create orders"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No data provided'
+            }), 400
+        
+        # Validation
+        required_fields = ['u_id', 'cart_items', 'shipping_address']
+        missing_fields = [field for field in required_fields if field not in data]
+        
+        if missing_fields:
+            return jsonify({
+                'success': False,
+                'message': 'Missing required fields',
+                'missing_fields': missing_fields
+            }), 400
+        
+        # Verify user exists
+        user = User.query.get(data['u_id'])
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': 'User not found'
+            }), 404
+        
+        # Get user info for shipping address
+        user_info = UserInfo.query.filter_by(u_id=data['u_id']).first()
+        if user_info:
+            # Build shipping address from user info
+            shipping_address = f"{user_info.street_address}, {user_info.city}"
+            if user_info.postal_code:
+                shipping_address += f", {user_info.postal_code}"
+        else:
+            # Use provided address or default message
+            shipping_address = data.get('shipping_address', 'ไม่ได้ระบุที่อยู่จัดส่ง')
+        
+        cart_items = data['cart_items']
+        if not cart_items or len(cart_items) == 0:
+            return jsonify({
+                'success': False,
+                'message': 'Cart is empty'
+            }), 400
+        
+        # Create orders for each item in cart
+        created_orders = []
+        
+        for item in cart_items:
+            # Verify product exists
+            product = Product.query.get(item['product_id'])
+            if not product:
+                continue  # Skip if product not found
+            
+            # Build description with quantity and custom size info
+            order_description = item.get('order_details', '')
+            if item.get('quantity'):
+                order_description = f"จำนวน: {item['quantity']} ชิ้น"
+                if item.get('product_size'):
+                    order_description += f" | อัตราส่วน: {item['product_size']}"
+                if item.get('order_details'):
+                    order_description += f" | {item['order_details']}"
+            
+            # Create new order
+            new_order = Order(
+                u_id=data['u_id'],
+                p_id=item['product_id'],
+                quantity=item.get('quantity', 1),  # บันทึกจำนวนสินค้า
+                total_amount=item['subtotal'],  # บันทึกราคารวม
+                shipping_address=shipping_address,  # Use address from UserInfo
+                status_id=1,  # Default to pending
+                description=order_description
+            )
+            
+            db.session.add(new_order)
+            created_orders.append({
+                'product_id': item['product_id'],
+                'product_name': product.name,
+                'quantity': item['quantity'],
+                'total_amount': float(item['subtotal'])
+            })
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully created {len(created_orders)} orders',
+            'data': {
+                'orders': created_orders,
+                'total_orders': len(created_orders)
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"API Cart checkout error: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to checkout',
+            'error': str(e)
+        }), 500
+
 
 
 @app.route('/api/gallery', methods=['GET'])
 def api_get_gallery():
-    """API endpoint to get all products for the gallery"""
+    """API endpoint to get all products for the toy shop"""
     try:
         # ดึงข้อมูลสินค้าทั้งหมดจากตาราง products
         products = Product.query.all()

@@ -120,4 +120,23 @@ block extra_css %}
 </section>
 {% endblock %} {% block extra_js %}
 <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+<script>
+  // Save user data to sessionStorage when logged in
+  {% if session.logged_in %}
+  sessionStorage.setItem('user_id', '{{ session.user_id }}');
+  sessionStorage.setItem('username', '{{ session.username }}');
+  sessionStorage.setItem('email', '{{ session.email }}');
+  sessionStorage.setItem('role_id', '{{ session.role_id }}');
+  {% if session.user_info %}
+  sessionStorage.setItem('user_info', JSON.stringify({
+    firstname: '{{ session.user_info.firstname }}',
+    lastname: '{{ session.user_info.lastname }}',
+    street_address: '{{ session.user_info.street_address }}',
+    city: '{{ session.user_info.city }}',
+    postal_code: '{{ session.user_info.postal_code }}',
+    telephone: '{{ session.user_info.telephone }}'
+  }));
+  {% endif %}
+  {% endif %}
+</script>
 {% endblock %}
