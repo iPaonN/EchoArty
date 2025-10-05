@@ -373,6 +373,94 @@ def get_categories():
             'error': str(e)
         }), 500
 
+@app.route('/api/categories', methods=['POST'])
+def create_category():
+    """API endpoint to create new category"""
+    try:
+        # Get form data
+        name = request.form.get('name', '').strip()
+        
+        if not name:
+            return jsonify({
+                'success': False,
+                'message': 'ชื่อหมวดหมู่ไม่สามารถว่างเปล่าได้'
+            }), 400
+        
+        # Check if category already exists
+        existing_category = Category.query.filter_by(name=name).first()
+        if existing_category:
+            return jsonify({
+                'success': False,
+                'message': 'หมวดหมู่นี้มีอยู่แล้ว'
+            }), 409
+        
+        # Create new category
+        new_category = Category(
+            name=name
+        )
+        
+        db.session.add(new_category)
+        db.session.commit()
+        
+        app.logger.info(f"Created category: {name} with ID: {new_category.c_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'เพิ่มหมวดหมู่สำเร็จ',
+            'data': {
+                'c_id': new_category.c_id,
+                'name': new_category.name
+            }
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating category: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'ไม่สามารถเพิ่มหมวดหมู่ได้'
+        }), 500
+
+@app.route('/api/categories/<int:category_id>', methods=['DELETE'])
+def delete_category(category_id):
+    """API endpoint to delete a category"""
+    try:
+        # Find the category
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({
+                'success': False,
+                'message': 'ไม่พบหมวดหมู่ที่ต้องการลบ'
+            }), 404
+        
+        category_name = category.name
+        
+        # Remove all product-category relationships first
+        db.session.execute(
+            product_categories.delete().where(
+                product_categories.c.c_id == category_id
+            )
+        )
+        
+        # Delete the category
+        db.session.delete(category)
+        db.session.commit()
+        
+        app.logger.info(f"Deleted category: {category_name} (ID: {category_id})")
+        
+        return jsonify({
+            'success': True,
+            'message': f'ลบหมวดหมู่ "{category_name}" สำเร็จ'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error deleting category {category_id}: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'ไม่สามารถลบหมวดหมู่ได้'
+        }), 500
+
 @app.route('/api/roles', methods=['GET'])
 def api_get_roles():
     """API endpoint to get all roles"""
@@ -819,7 +907,7 @@ def get_manage_products():
             'error': str(e)
         }), 500
 
-@app.route('/api/products/<int:product_id>', methods=['GET', 'PUT'])
+@app.route('/api/products/<int:product_id>', methods=['GET', 'PUT', 'DELETE'])
 def manage_product_api(product_id):
     """API endpoint for managing a single product"""
     product = Product.query.get_or_404(product_id)
@@ -886,6 +974,39 @@ def manage_product_api(product_id):
                 'success': False,
                 'message': str(e)
             }), 400
+    
+    elif request.method == 'DELETE':
+        try:
+            from sqlalchemy import text
+            
+            # Step 1: Remove from product_categories junction table first
+            db.session.execute(
+                text("DELETE FROM product_categories WHERE p_id = :pid"), 
+                {'pid': product_id}
+            )
+            
+            # Step 2: Delete the product from products table
+            db.session.execute(
+                text("DELETE FROM products WHERE p_id = :pid"), 
+                {'pid': product_id}
+            )
+            
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Product deleted successfully'
+            }), 200
+                
+        except Exception as e:
+            db.session.rollback()
+            print(f"DEBUG: Error deleting product {product_id}: {e}")
+            print(f"DEBUG: Error type: {type(e)}")
+            app.logger.error(f"Error deleting product {product_id}: {e}")
+            return jsonify({
+                'success': False,
+                'message': f'ไม่สามารถลบสินค้าได้: {str(e)}'
+            }), 400
 
 @app.route('/api/products', methods=['POST'])
 def add_product():
@@ -918,9 +1039,42 @@ def add_product():
         db.session.flush()  # Get the product ID
         
         # Handle categories
+        print(f"DEBUG: Form data keys: {list(request.form.keys())}")
+        print(f"DEBUG: Category data in form: {'category[]' in request.form}")
+        
+        categories_to_assign = []
+        
+        # Handle existing categories
         if 'category[]' in request.form:
             selected_categories = request.form.getlist('category[]')
-            new_product.categories = Category.query.filter(Category.c_id.in_(selected_categories)).all()
+            print(f"DEBUG: Selected categories: {selected_categories}")
+            existing_categories = Category.query.filter(Category.c_id.in_(selected_categories)).all()
+            categories_to_assign.extend(existing_categories)
+            print(f"DEBUG: Found existing categories: {[cat.name for cat in existing_categories]}")
+        
+        # Handle new categories
+        if 'newCategories' in request.form and request.form.get('newCategories').strip():
+            new_categories_text = request.form.get('newCategories').strip()
+            new_category_names = [name.strip() for name in new_categories_text.split(',') if name.strip()]
+            print(f"DEBUG: New categories to create: {new_category_names}")
+            
+            for category_name in new_category_names:
+                # Check if category already exists
+                existing_cat = Category.query.filter_by(name=category_name).first()
+                if existing_cat:
+                    categories_to_assign.append(existing_cat)
+                    print(f"DEBUG: Category '{category_name}' already exists, using existing")
+                else:
+                    # Create new category
+                    new_category = Category(name=category_name)
+                    db.session.add(new_category)
+                    db.session.flush()  # Get the ID
+                    categories_to_assign.append(new_category)
+                    print(f"DEBUG: Created new category '{category_name}' with ID {new_category.c_id}")
+        
+        # Assign all categories to product
+        new_product.categories = categories_to_assign
+        print(f"DEBUG: Total categories assigned: {len(categories_to_assign)}")
         
         db.session.commit()
         

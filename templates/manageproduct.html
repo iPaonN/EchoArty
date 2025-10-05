@@ -191,10 +191,6 @@
                     name="productName"
                     required
                   />
-                  <div class="form-text text-primary">
-                    <i class="fas fa-info-circle me-1"></i>
-                    หมายเหตุ: ไม่สามารถเปลี่ยนชื่อสินค้าและรูปภาพพร้อมกันได้
-                  </div>
                 </div>
 
                 <div class="mb-3">
@@ -434,25 +430,62 @@
                     style="max-height: 200px; overflow-y: auto"
                   >
                     {% if categories %} {% for category in categories %}
-                    <div class="form-check mb-2">
-                      <input
-                        class="form-check-input"
-                        type="checkbox"
-                        name="category[]"
-                        value="{{ category.c_id }}"
-                        id="add-category-{{ category.c_id }}"
-                      />
-                      <label
-                        class="form-check-label"
-                        for="add-category-{{ category.c_id }}"
+                    <div class="form-check mb-2 d-flex align-items-center justify-content-between">
+                      <div class="d-flex align-items-center">
+                        <input
+                          class="form-check-input me-2"
+                          type="checkbox"
+                          name="category[]"
+                          value="{{ category.c_id }}"
+                          id="add-category-{{ category.c_id }}"
+                        />
+                        <label
+                          class="form-check-label"
+                          for="add-category-{{ category.c_id }}"
+                        >
+                          {{ category.name }}
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger delete-category-btn"
+                        data-category-id="{{ category.c_id }}"
+                        data-category-name="{{ category.name }}"
+                        title="ลบหมวดหมู่นี้"
                       >
-                        {{ category.name }}
-                      </label>
+                        <i class="fas fa-times"></i>
+                      </button>
                     </div>
                     {% endfor %} {% endif %}
+                    
+                    <!-- Add new category button and input -->
+                    <div class="mt-2">
+                      <button type="button" class="btn btn-outline-primary btn-sm w-100" id="addCategoryBtn" onclick="showAddCategoryInput()">
+                        <i class="fas fa-plus me-2"></i>เพิ่มหมวดหมู่ใหม่
+                      </button>
+                      
+                      <!-- Hidden input for new category -->
+                      <div id="addCategoryInput" class="mt-2" style="display: none;">
+                        <div class="input-group">
+                          <input
+                            type="text"
+                            class="form-control"
+                            id="newCategoryName"
+                            placeholder="ชื่อหมวดหมู่ใหม่"
+                            maxlength="100"
+                          />
+                          <button type="button" class="btn btn-success" onclick="addNewCategory()">
+                            <i class="fas fa-check"></i>
+                          </button>
+                          <button type="button" class="btn btn-secondary" onclick="cancelAddCategory()">
+                            <i class="fas fa-times"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div class="invalid-feedback" id="add-category-feedback">
-                    กรุณาเลือกอย่างน้อย 1 หมวดหมู่
+                    กรุณาเลือกหมวดหมู่หรือเพิ่มหมวดหมู่ใหม่อย่างน้อย 1 รายการ
                   </div>
                 </div>
 

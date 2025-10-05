@@ -432,8 +432,22 @@ async function handleAddSubmit(e) {
   }
 
   const formData = new FormData();
-  const x = document.getElementById("add_number_x").value;
-  const y = document.getElementById("add_number_y").value;
+  
+  // Get form elements with null checks
+  const xElement = document.getElementById("add_number_x");
+  const yElement = document.getElementById("add_number_y");
+  const nameElement = document.getElementById("addProductName");
+  const descElement = document.getElementById("addDescription");
+  const priceElement = document.getElementById("addPrice");
+  
+  if (!xElement || !yElement || !nameElement || !descElement || !priceElement) {
+    console.error("Missing form elements");
+    showNotification("เกิดข้อผิดพลาดในฟอร์ม", "error");
+    return;
+  }
+  
+  const x = xElement.value;
+  const y = yElement.value;
 
   // Get selected categories
   const selectedCategories = [];
@@ -443,9 +457,9 @@ async function handleAddSubmit(e) {
       selectedCategories.push(checkbox.value); // Keep as string for form data
     });
 
-  formData.append("productName", document.getElementById("addProductName").value);
-  formData.append("description", document.getElementById("addDescription").value);
-  formData.append("price", document.getElementById("addPrice").value);
+  formData.append("productName", nameElement.value);
+  formData.append("description", descElement.value);
+  formData.append("price", priceElement.value);
   formData.append("number_x", x);
   formData.append("number_y", y);
   
@@ -454,9 +468,10 @@ async function handleAddSubmit(e) {
     formData.append("category[]", catId);
   });
 
-  const imageFile = document.getElementById("addImage").files[0];
-  if (imageFile) {
-    formData.append("image", imageFile);
+  // Handle image file upload
+  const imageElement = document.getElementById("addImage");
+  if (imageElement && imageElement.files && imageElement.files[0]) {
+    formData.append("image", imageElement.files[0]);
   }
 
   try {
@@ -501,13 +516,14 @@ function validateForm(modalId) {
   const selectedCategories = modal.querySelectorAll(
     'input[name="category[]"]:checked'
   );
+  
   if (selectedCategories.length === 0) {
     const feedback = modal.querySelector('[id$="-category-feedback"]');
     if (feedback) {
       feedback.style.display = "block";
       feedback.classList.add("d-block");
     }
-    showNotification("กรุณาเลือกอย่างน้อย 1 หมวดหมู่", "warning");
+    showNotification("กรุณาเลือกหมวดหมู่อย่างน้อย 1 รายการ", "warning");
     return false;
   }
 
@@ -574,52 +590,83 @@ function resetImagePreview(previewId) {
 // ======= PRODUCT MANAGEMENT =======
 let productToDelete = null;
 
-function removeProduct(productId) {
+function openDeleteModal(productId, productName, productImage) {
   productToDelete = productId;
 
-  // Get product information from the table row
-  const row = document.querySelector(`tr[data-product-id="${productId}"]`);
-  if (row) {
-    const productName = row.querySelector(".product-name").textContent;
-    const productImage = row.querySelector(".product-image").src;
-
-    // Update delete modal with product information
-    document.getElementById("deleteProductId").textContent = productId;
-    document.getElementById("deleteProductName").textContent = productName;
-    document.getElementById("deleteProductImage").src = productImage;
-    document.getElementById("deleteProductInfo").style.display = "block";
+  // Update delete modal with product information
+  document.getElementById("deleteProductId").textContent = productId;
+  document.getElementById("deleteProductName").textContent = productName;
+  
+  // Set product image
+  const deleteProductImage = document.getElementById("deleteProductImage");
+  if (productImage && productImage !== 'null' && productImage !== '') {
+    deleteProductImage.src = IMAGE_BASE_URL + productImage;
+  } else {
+    deleteProductImage.src = '/static/images/placeholder.jpg';
   }
+  
+  document.getElementById("deleteProductInfo").style.display = "block";
 
   // Show delete confirmation modal
   window.deleteModalInstance.show();
 }
 
-function confirmDeleteProduct() {
+function removeProduct(productId) {
+  // This function is kept for backward compatibility
+  // Get product information from the table row  
+  const rows = document.querySelectorAll('#productTableBody tr');
+  let productName = 'สินค้า';
+  let productImage = '';
+  
+  rows.forEach(row => {
+    const editBtn = row.querySelector('.edit-btn');
+    if (editBtn && editBtn.dataset.id == productId) {
+      productName = row.children[1].querySelector('strong').textContent;
+      const imgElement = row.querySelector('.product-image');
+      if (imgElement) {
+        productImage = imgElement.src.split('/').pop();
+      }
+    }
+  });
+
+  openDeleteModal(productId, productName, productImage);
+}
+
+async function confirmDeleteProduct() {
   if (!productToDelete) return;
 
-  // Hide modal first
-  window.deleteModalInstance.hide();
+  try {
+    showNotification("กำลังลบสินค้า...", "info");
+    
+    const response = await fetch(`${API_BASE_URL}/products/${productToDelete}`, {
+      method: 'DELETE'
+    });
 
-  showNotification("กำลังลบสินค้า...", "info");
-
-  // Simulate API call
-  setTimeout(() => {
-    showNotification("ลบสินค้าเรียบร้อยแล้ว", "success");
-
-    // Remove row from table
-    const row = document.querySelector(
-      `tr[data-product-id="${productToDelete}"]`
-    );
-    if (row) {
-      row.style.animation = "fadeOut 0.5s ease-out";
-      setTimeout(() => {
-        row.remove();
-      }, 500);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    // Reset productToDelete
-    productToDelete = null;
-  }, 1000);
+    const result = await response.json();
+    
+    if (result.success) {
+      // Hide modal first
+      window.deleteModalInstance.hide();
+      
+      showNotification("ลบสินค้าเรียบร้อยแล้ว", "success");
+      
+      // Refresh products list
+      await fetchProducts();
+    } else {
+      showNotification("Error: " + result.message, "error");
+    }
+    
+  } catch (error) {
+    console.error('Error deleting product:', error);
+    showNotification('ไม่สามารถลบสินค้าได้', 'error');
+  }
+
+  // Reset productToDelete
+  productToDelete = null;
 }
 
 // ======= UTILITY FUNCTIONS =======
@@ -717,11 +764,154 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// ======= CATEGORY MANAGEMENT =======
+function showAddCategoryInput() {
+  document.getElementById('addCategoryBtn').style.display = 'none';
+  document.getElementById('addCategoryInput').style.display = 'block';
+  document.getElementById('newCategoryName').focus();
+}
+
+function cancelAddCategory() {
+  document.getElementById('addCategoryBtn').style.display = 'block';
+  document.getElementById('addCategoryInput').style.display = 'none';
+  document.getElementById('newCategoryName').value = '';
+}
+
+async function addNewCategory() {
+  const categoryName = document.getElementById('newCategoryName').value.trim();
+  
+  if (!categoryName) {
+    showNotification('กรุณาใส่ชื่อหมวดหมู่', 'warning');
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('name', categoryName);
+    
+    const response = await fetch(`${API_BASE_URL}/categories`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification(`เพิ่มหมวดหมู่ "${categoryName}" สำเร็จ`, 'success');
+      
+      // Add new checkbox to the list
+      const categoryContainer = document.querySelector('#addModal .category-checkbox-container');
+      const newCheckbox = document.createElement('div');
+      newCheckbox.className = 'form-check mb-2 d-flex align-items-center justify-content-between';
+      newCheckbox.innerHTML = `
+        <div class="d-flex align-items-center">
+          <input
+            class="form-check-input me-2"
+            type="checkbox"
+            name="category[]"
+            value="${result.data.c_id}"
+            id="add-category-${result.data.c_id}"
+            checked
+          />
+          <label
+            class="form-check-label"
+            for="add-category-${result.data.c_id}"
+          >
+            ${categoryName}
+          </label>
+        </div>
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-danger delete-category-btn"
+          data-category-id="${result.data.c_id}"
+          data-category-name="${categoryName}"
+          title="ลบหมวดหมู่นี้"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      
+      // Insert before the add button container
+      const addButtonContainer = categoryContainer.querySelector('.mt-2');
+      categoryContainer.insertBefore(newCheckbox, addButtonContainer);
+      
+      // Reset and hide input
+      cancelAddCategory();
+    } else {
+      showNotification('เกิดข้อผิดพลาด: ' + result.message, 'error');
+    }
+    
+  } catch (error) {
+    console.error('Error adding category:', error);
+    showNotification('ไม่สามารถเพิ่มหมวดหมู่ได้', 'error');
+  }
+}
+
+// ======= CATEGORY DELETE FUNCTIONS =======
+async function deleteCategoryConfirm(categoryId, categoryName) {
+  const confirmed = confirm(`คุณแน่ใจหรือไม่ที่จะลบหมวดหมู่ "${categoryName}"?\n\nการลบหมวดหมู่นี้จะส่งผลต่อสินค้าทั้งหมดที่อยู่ในหมวดหมู่นี้`);
+  
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+      method: 'DELETE'
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification(`ลบหมวดหมู่ "${categoryName}" สำเร็จ`, 'success');
+      
+      // Remove category from both edit and add modals
+      const editCategoryElement = document.querySelector(`#editModal [data-category-id="${categoryId}"]`)?.closest('.form-check');
+      const addCategoryElement = document.querySelector(`#addModal [data-category-id="${categoryId}"]`)?.closest('.form-check');
+      
+      if (editCategoryElement) editCategoryElement.remove();
+      if (addCategoryElement) addCategoryElement.remove();
+      
+      // Refresh the page to update product list
+      setTimeout(() => {
+        location.reload();
+      }, 1500);
+    } else {
+      showNotification('เกิดข้อผิดพลาด: ' + result.message, 'error');
+    }
+    
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    showNotification('ไม่สามารถลบหมวดหมู่ได้', 'error');
+  }
+}
+
+// Event delegation for dynamically added delete buttons
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.delete-category-btn')) {
+    const button = e.target.closest('.delete-category-btn');
+    const categoryId = button.getAttribute('data-category-id');
+    const categoryName = button.getAttribute('data-category-name');
+    deleteCategoryConfirm(categoryId, categoryName);
+  }
+});
+
 // ======= GLOBAL FUNCTIONS (for onclick handlers) =======
 window.openEditModal = openEditModal;
 window.openAddModal = openAddModal;
 window.closeEditModal = closeEditModal;
 window.closeAddModal = closeAddModal;
+window.openDeleteModal = openDeleteModal;
 window.removeProduct = removeProduct;
 window.confirmDeleteProduct = confirmDeleteProduct;
 window.previewImage = previewImage;
+window.showAddCategoryInput = showAddCategoryInput;
+window.cancelAddCategory = cancelAddCategory;
+window.addNewCategory = addNewCategory;
+window.deleteCategoryConfirm = deleteCategoryConfirm;
