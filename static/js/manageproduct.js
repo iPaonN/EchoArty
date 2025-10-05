@@ -424,7 +424,7 @@ function handleEditSubmit(e) {
   }, 1500);
 }
 
-function handleAddSubmit(e) {
+async function handleAddSubmit(e) {
   e.preventDefault();
 
   if (!validateForm("addModal")) {
@@ -440,36 +440,57 @@ function handleAddSubmit(e) {
   document
     .querySelectorAll('#addModal input[name="category[]"]:checked')
     .forEach((checkbox) => {
-      selectedCategories.push(parseInt(checkbox.value));
+      selectedCategories.push(checkbox.value); // Keep as string for form data
     });
 
-  formData.append(
-    "productName",
-    document.getElementById("addProductName").value
-  );
-  formData.append(
-    "description",
-    document.getElementById("addDescription").value
-  );
+  formData.append("productName", document.getElementById("addProductName").value);
+  formData.append("description", document.getElementById("addDescription").value);
   formData.append("price", document.getElementById("addPrice").value);
-  formData.append("amount", document.getElementById("addAmount").value);
   formData.append("number_x", x);
   formData.append("number_y", y);
-  formData.append("categories", JSON.stringify(selectedCategories));
+  
+  // Add categories as individual form fields
+  selectedCategories.forEach(catId => {
+    formData.append("category[]", catId);
+  });
 
   const imageFile = document.getElementById("addImage").files[0];
   if (imageFile) {
     formData.append("image", imageFile);
   }
 
-  // Simulate API call
-  showNotification("กำลังเพิ่มสินค้า...", "info");
+  try {
+    showNotification("กำลังเพิ่มสินค้า...", "info");
+    
+    const response = await fetch(`${API_BASE_URL}/products`, {
+      method: 'POST',
+      body: formData
+    });
 
-  setTimeout(() => {
-    showNotification("เพิ่มสินค้าเรียบร้อยแล้ว", "success");
-    window.addModalInstance.hide();
-    // window.location.reload(); // Uncomment for actual implementation
-  }, 1500);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    
+    if (result.success) {
+      showNotification("เพิ่มสินค้าเรียบร้อยแล้ว", "success");
+      window.addModalInstance.hide();
+      
+      // Reset form
+      document.getElementById("addForm").reset();
+      resetImagePreview("addImagePreview");
+      
+      // Refresh products list
+      await fetchProducts();
+    } else {
+      showNotification("Error: " + result.message, "error");
+    }
+    
+  } catch (error) {
+    console.error('Error adding product:', error);
+    showNotification('ไม่สามารถเพิ่มสินค้าได้', 'error');
+  }
 }
 
 // ======= FORM VALIDATION =======

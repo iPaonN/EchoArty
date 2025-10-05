@@ -349,8 +349,6 @@
         <div class="modal-body">
           <form
             id="addForm"
-            action="{{ url_for('add_product') }}"
-            method="post"
             enctype="multipart/form-data"
           >
             <div class="row">
@@ -422,19 +420,6 @@
                       style="width: 80px"
                     />
                   </div>
-                </div>
-
-                <div class="mb-3">
-                  <label for="addAmount" class="form-label">
-                    <i class="fas fa-boxes me-2"></i>จำนวน
-                  </label>
-                  <input
-                    type="number"
-                    class="form-control"
-                    id="addAmount"
-                    name="amount"
-                    required
-                  />
                 </div>
               </div>
 
