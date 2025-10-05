@@ -886,6 +886,57 @@ def manage_product_api(product_id):
                 'success': False,
                 'message': str(e)
             }), 400
+
+@app.route('/api/products', methods=['POST'])
+def add_product():
+    """API endpoint to add a new product"""
+    try:
+        # Create new product
+        new_product = Product(
+            name=request.form.get('productName'),
+            description=request.form.get('description'),
+            price=float(request.form.get('price')),
+            size=f"{request.form.get('number_x', '1')}:{request.form.get('number_y', '1')}"
+        )
+        
+        # Handle image upload if provided
+        if 'image' in request.files:
+            file = request.files['image']
+            if file and file.filename and allowed_file(file.filename):
+                from werkzeug.utils import secure_filename
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                new_product.image = filename
+        
+        # Set timestamps with Thai time
+        from datetime import timedelta
+        thai_time = datetime.utcnow() + timedelta(hours=7)
+        new_product.created_at = thai_time
+        new_product.updated_at = thai_time
+        
+        db.session.add(new_product)
+        db.session.flush()  # Get the product ID
+        
+        # Handle categories
+        if 'category[]' in request.form:
+            selected_categories = request.form.getlist('category[]')
+            new_product.categories = Category.query.filter(Category.c_id.in_(selected_categories)).all()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Product added successfully',
+            'data': {'p_id': new_product.p_id}
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error adding product: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 400
     
     if request.method == 'POST':
         try:
