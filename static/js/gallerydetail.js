@@ -1,5 +1,48 @@
 // Toy Detail JavaScript Functions
 
+// ======= PRICE CALCULATION FUNCTION =======
+function calculatePrice(basePrice, x, y, quantity) {
+    x = parseFloat(x);
+    y = parseFloat(y);
+    quantity = parseInt(quantity) || 1;
+    basePrice = parseFloat(basePrice);
+
+    if (isNaN(x) || isNaN(y) || x <= 0 || y <= 0 || isNaN(basePrice)) {
+        console.log("Invalid input values, using defaults");
+        x = 1;
+        y = 1;
+    }
+
+    console.log(`Price calculation - Base: ${basePrice}, Size: ${x}x${y}, Quantity: ${quantity}`);
+    
+    // Calculate ratio outside conditionals for cleaner code
+    const ratio = Math.max(x, y) / Math.min(x, y);
+    
+    let unitPrice;
+    if (Math.abs(x - y) < 0.001) { // Square (same dimensions)
+        unitPrice = basePrice * x;
+        console.log(`Square pricing: ${basePrice} × ${x} = ${unitPrice}`);
+    } else if (ratio > 5) {
+        unitPrice = basePrice * ((x + y) / 2);
+        console.log(`Extreme rectangle pricing: ${basePrice} × (${x} + ${y})/2 = ${unitPrice}`);
+    } else if (ratio > 2) {
+        unitPrice = basePrice * Math.max(x, y);
+        console.log(`Moderate rectangle pricing: ${basePrice} × max(${x},${y}) = ${unitPrice}`);
+    } else {
+        unitPrice = basePrice * (x * y);
+        console.log(`Mild rectangle pricing: ${basePrice} × ${x} × ${y} = ${unitPrice}`);
+    }
+
+    // Multiply by quantity for final price
+    const totalPrice = unitPrice * quantity;
+    console.log(`Final calculation: ${unitPrice} × ${quantity} = ${totalPrice}`);
+    
+    return {
+        unitPrice: unitPrice,
+        totalPrice: totalPrice
+    };
+}
+
 // Quantity management functions
 function increaseQuantity() {
   const quantityInput = document.getElementById("quantity");
@@ -26,21 +69,24 @@ function getBasePrice() {
 
 // Price calculation function
 function updatePrice() {
-  const quantity = parseInt(document.getElementById("quantity").value);
+  const quantity = parseInt(document.getElementById("quantity").value) || 1;
+  const width = parseFloat(document.getElementById("width").value) || 1;
+  const height = parseFloat(document.getElementById("height").value) || 1;
+  
   // ดึงราคาฐานจาก HTML
   const basePrice = getBasePrice();
   
   if (basePrice === 0) {
       console.error("ไม่พบราคาฐานสินค้า (basePrice is 0 or not found in data-attribute).");
+      return;
   }
   
-  const totalPrice = quantity * basePrice;
+  // คำนวณราคาโดยใช้ฟังก์ชัน calculatePrice
+  const priceResult = calculatePrice(basePrice, width, height, quantity);
 
   // Update price displays
-  // ใช้ basePrice ที่ดึงมาจาก database มาแสดง
-  document.getElementById("unitPrice").textContent = basePrice.toFixed(2) + "฿";
-  document.getElementById("totalPrice").textContent =
-    totalPrice.toFixed(2) + "฿";
+  document.getElementById("unitPrice").textContent = priceResult.unitPrice.toFixed(2) + "฿";
+  document.getElementById("totalPrice").textContent = priceResult.totalPrice.toFixed(2) + "฿";
 }
 
 // Initialize when page loads
@@ -50,6 +96,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Add event listener for quantity input changes
   document.getElementById("quantity").addEventListener("input", updatePrice);
+  
+  // Add event listeners for dimension changes
+  document.getElementById("width").addEventListener("input", updatePrice);
+  document.getElementById("height").addEventListener("input", updatePrice);
 
   // File upload handling
   document
@@ -89,9 +139,12 @@ document.addEventListener("DOMContentLoaded", function () {
     // Get form data
     const orderDetails = document.getElementById("orderDetails").value.trim();
     const quantity = parseInt(document.getElementById("quantity").value);
-    const width = document.getElementById("width").value;
-    const height = document.getElementById("height").value;
+    const width = parseFloat(document.getElementById("width").value);
+    const height = parseFloat(document.getElementById("height").value);
     const customSize = width + ":" + height;
+
+    // คำนวณราคาจริงโดยใช้ฟังก์ชัน calculatePrice
+    const priceResult = calculatePrice(productPrice, width, height, quantity);
 
     // Create cart item object
     const cartItem = {
@@ -102,7 +155,8 @@ document.addEventListener("DOMContentLoaded", function () {
       product_size: customSize,
       quantity: quantity,
       order_details: orderDetails,
-      subtotal: productPrice * quantity
+      unit_price: priceResult.unitPrice,
+      subtotal: priceResult.totalPrice
     };
 
     // Add to cart (localStorage)
@@ -449,4 +503,15 @@ function setupReviewForm(productId) {
       showNotification('เกิดข้อผิดพลาดในการส่งรีวิว', 'danger');
     }
   });
+}
+
+// ======= EXPORT FOR NODE.JS AND BROWSER =======
+// For use in Node.js (server-side)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { calculatePrice };
+}
+
+// For use in browser (client-side)
+if (typeof window !== 'undefined') {
+    window.calculatePrice = calculatePrice;
 }
