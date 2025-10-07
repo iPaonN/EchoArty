@@ -238,128 +238,71 @@ EchoArty{% endblock %} {% block extra_css %}
           <h4 class="text-center mb-4">รีวิวจากลูกค้า</h4>
 
           <!-- Rating Summary -->
-          <div class="rating-summary">
-            <div class="rating-number">5</div>
-            <div class="stars">
-              <i class="fas fa-star"></i>
-              <i class="fas fa-star"></i>
-              <i class="fas fa-star"></i>
-              <i class="fas fa-star"></i>
-              <i class="fas fa-star"></i>
-            </div>
-            <div class="text-muted">จาก 123 รีวิว</div>
+          <div id="ratingSummary" class="rating-summary">
+            <div class="rating-number" id="avgScore">0</div>
+            <div class="stars" id="avgStars"></div>
+            <div class="text-muted" id="totalReviews">ยังไม่มีรีวิว</div>
+          </div>
 
-            <!-- Rating Bars -->
-            <div class="rating-bars">
-              <div class="rating-bar">
-                <span class="rating-label">5★</span>
-                <div class="progress">
-                  <div class="progress-bar" style="width: 85%"></div>
-                </div>
-                <span class="rating-count">85%</span>
-              </div>
-              <div class="rating-bar">
-                <span class="rating-label">4★</span>
-                <div class="progress">
-                  <div class="progress-bar" style="width: 10%"></div>
-                </div>
-                <span class="rating-count">10%</span>
-              </div>
-              <div class="rating-bar">
-                <span class="rating-label">3★</span>
-                <div class="progress">
-                  <div class="progress-bar" style="width: 3%"></div>
-                </div>
-                <span class="rating-count">3%</span>
-              </div>
-              <div class="rating-bar">
-                <span class="rating-label">2★</span>
-                <div class="progress">
-                  <div class="progress-bar" style="width: 1%"></div>
-                </div>
-                <span class="rating-count">1%</span>
-              </div>
-              <div class="rating-bar">
-                <span class="rating-label">1★</span>
-                <div class="progress">
-                  <div class="progress-bar" style="width: 1%"></div>
-                </div>
-                <span class="rating-count">1%</span>
-              </div>
-            </div>
+          <!-- Write Review Button (only if eligible) -->
+          <div id="writeReviewSection" class="text-center mb-3" style="display: none;">
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#reviewModal">
+              <i class="fas fa-edit me-2"></i>เขียนรีวิว
+            </button>
           </div>
 
           <!-- Individual Reviews -->
-          <div class="review-item">
-            <div class="reviewer-info">
-              <div class="reviewer-avatar">A</div>
-              <div>
-                <div class="reviewer-name">คุณ ก</div>
-                <div class="review-stars">
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                </div>
-              </div>
-              <div class="review-date">15 ก.ย. 2567</div>
+          <div id="reviewsList">
+            <div class="text-center text-muted py-4">
+              <i class="fas fa-comments fa-3x mb-3"></i>
+              <p>ยังไม่มีรีวิวสำหรับสินค้านี้</p>
             </div>
-            <p class="mb-0">
-              คุณภาพดีมาก รายละเอียดสวยงาม ตรงตามที่สั่ง ของแท้แน่นอน
-            </p>
-          </div>
-
-          <div class="review-item">
-            <div class="reviewer-info">
-              <div class="reviewer-avatar">B</div>
-              <div>
-                <div class="reviewer-name">คุณ ข</div>
-                <div class="review-stars">
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                </div>
-              </div>
-              <div class="review-date">12 ก.ย. 2567</div>
-            </div>
-            <p class="mb-0">
-              ได้ของเร็วมาก บรรจุภัณฑ์ดี ไม่เสียหาย แนะนำเลยครับ
-            </p>
-          </div>
-
-          <div class="review-item">
-            <div class="reviewer-info">
-              <div class="reviewer-avatar">C</div>
-              <div>
-                <div class="reviewer-name">คุณ ค</div>
-                <div class="review-stars">
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                  <i class="fas fa-star"></i>
-                </div>
-              </div>
-              <div class="review-date">10 ก.ย. 2567</div>
-            </div>
-            <p class="mb-0">
-              Figure สวยมาก ของแท้ ราคาดี จัดส่งเร็ว ประทับใจมากครับ
-            </p>
-          </div>
-
-          <div class="text-center mt-3">
-            <button class="btn btn-outline-primary btn-sm">
-              ดูรีวิวทั้งหมด (123)
-            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- Review Modal -->
+<div class="modal fade" id="reviewModal" tabindex="-1" aria-labelledby="reviewModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="reviewModalLabel">เขียนรีวิวสินค้า</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="reviewForm">
+          <div class="mb-3">
+            <label class="form-label">คะแนน <span class="text-danger">*</span></label>
+            <div class="rating-input">
+              <i class="fas fa-star" data-score="1"></i>
+              <i class="fas fa-star" data-score="2"></i>
+              <i class="fas fa-star" data-score="3"></i>
+              <i class="fas fa-star" data-score="4"></i>
+              <i class="fas fa-star" data-score="5"></i>
+            </div>
+            <input type="hidden" id="reviewScore" name="score" required>
+          </div>
+          <div class="mb-3">
+            <label for="reviewTitle" class="form-label">หัวข้อรีวิว</label>
+            <input type="text" class="form-control" id="reviewTitle" name="title" maxlength="100" placeholder="เช่น สินค้าดีมาก แนะนำเลย">
+          </div>
+          <div class="mb-3">
+            <label for="reviewDescription" class="form-label">รายละเอียด</label>
+            <textarea class="form-control" id="reviewDescription" name="description" rows="4" placeholder="แบ่งปันประสบการณ์การใช้งานสินค้านี้"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <button type="button" class="btn btn-primary" id="submitReview">ส่งรีวิว</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %} {% block extra_js %}
 <script src="{{ url_for('static', filename='js/gallerydetail.js') }}"></script>
 {% endblock %}

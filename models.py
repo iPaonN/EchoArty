@@ -145,3 +145,39 @@ class Order(db.Model):
     
     def __repr__(self):
         return f'<Order {self.order_id}>'
+
+class Review(db.Model):
+    __tablename__ = 'reviews'
+    review_id = db.Column(db.Integer, primary_key=True)
+    p_id = db.Column(db.Integer, db.ForeignKey('products.p_id'), nullable=False)
+    o_id = db.Column(db.Integer, db.ForeignKey('orders.order_id'), nullable=False)
+    u_id = db.Column(db.Integer, db.ForeignKey('users.u_id'), nullable=False)
+    title = db.Column(db.String(100), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    review_date = db.Column(db.DateTime, nullable=False, default=get_thai_time)
+    score = db.Column(db.Integer, nullable=False)  # 1-5 stars
+    
+    # Relationships
+    user = db.relationship('User', backref=db.backref('reviews', lazy=True))
+    product = db.relationship('Product', backref=db.backref('reviews', lazy=True))
+    order = db.relationship('Order', foreign_keys=[o_id], backref=db.backref('review', uselist=False))
+    
+    def to_dict(self):
+        """Convert review to dictionary"""
+        return {
+            'review_id': self.review_id,
+            'u_id': self.u_id,
+            'username': self.user.username if self.user else None,
+            'customer_name': f"{self.user.info.firstname} {self.user.info.lastname}" if self.user and self.user.info else None,
+            'p_id': self.p_id,
+            'product_name': self.product.name if self.product else None,
+            'o_id': self.o_id,
+            'order_id': self.o_id,  # Alias for compatibility
+            'title': self.title,
+            'description': self.description,
+            'score': self.score,
+            'review_date': self.review_date.strftime('%Y-%m-%d %H:%M:%S') if self.review_date else None
+        }
+    
+    def __repr__(self):
+        return f'<Review {self.review_id} - Product {self.p_id} - Score {self.score}>'

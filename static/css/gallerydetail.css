@@ -335,3 +335,36 @@
     font-size: 0.8rem;
   }
 }
+
+/* Review Form Styles */
+.rating-input {
+  display: flex;
+  gap: 10px;
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.rating-input i {
+  color: #dee2e6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rating-input i:hover,
+.rating-input i.fas {
+  color: #ffc107;
+  transform: scale(1.1);
+}
+
+.rating-input i.far {
+  color: #dee2e6;
+}
+
+#reviewModal .modal-body {
+  padding: 1.5rem;
+}
+
+#reviewModal textarea {
+  resize: vertical;
+  min-height: 100px;
+}

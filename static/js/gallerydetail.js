@@ -218,3 +218,235 @@ window.increaseQuantity = increaseQuantity;
 window.decreaseQuantity = decreaseQuantity;
 window.addToCart = addToCart;
 window.showNotification = showNotification;
+
+// ======= REVIEW MANAGEMENT FUNCTIONS =======
+
+// Load reviews when page loads
+document.addEventListener("DOMContentLoaded", function() {
+  const container = document.querySelector(".product-detail-container");
+  const productId = container ? container.getAttribute("data-product-id") : null;
+  
+  if (productId) {
+    loadReviews(productId);
+    checkCanReview(productId);
+    setupReviewForm(productId);
+  }
+});
+
+async function loadReviews(productId) {
+  try {
+    const response = await fetch(`http://localhost:5000/api/products/${productId}/reviews`);
+    const data = await response.json();
+    
+    if (data.success) {
+      displayReviews(data.data);
+    } else {
+      console.error('Failed to load reviews:', data.message);
+    }
+  } catch (error) {
+    console.error('Error loading reviews:', error);
+  }
+}
+
+function displayReviews(data) {
+  const { reviews, total_reviews, average_score } = data;
+  
+  // Update rating summary
+  const avgScoreEl = document.getElementById('avgScore');
+  const avgStarsEl = document.getElementById('avgStars');
+  const totalReviewsEl = document.getElementById('totalReviews');
+  
+  if (total_reviews === 0) {
+    avgScoreEl.textContent = '0';
+    avgStarsEl.innerHTML = '';
+    totalReviewsEl.textContent = 'ยังไม่มีรีวิว';
+    return;
+  }
+  
+  avgScoreEl.textContent = average_score.toFixed(1);
+  avgStarsEl.innerHTML = generateStars(average_score);
+  totalReviewsEl.textContent = `จาก ${total_reviews} รีวิว`;
+  
+  // Display individual reviews
+  const reviewsList = document.getElementById('reviewsList');
+  if (reviews.length === 0) {
+    reviewsList.innerHTML = `
+      <div class="text-center text-muted py-4">
+        <i class="fas fa-comments fa-3x mb-3"></i>
+        <p>ยังไม่มีรีวิวสำหรับสินค้านี้</p>
+      </div>
+    `;
+  } else {
+    reviewsList.innerHTML = reviews.map(review => `
+      <div class="review-item">
+        <div class="reviewer-info">
+          <div class="reviewer-avatar">${getInitial(review.customer_name || review.username)}</div>
+          <div>
+            <div class="reviewer-name">${review.customer_name || review.username}</div>
+            ${review.title ? `<div class="fw-bold">${review.title}</div>` : ''}
+            <div class="review-stars">${generateStars(review.score)}</div>
+          </div>
+          <div class="review-date">${formatDate(review.review_date)}</div>
+        </div>
+        ${review.description ? `<p class="mb-0">${review.description}</p>` : ''}
+      </div>
+    `).join('');
+  }
+}
+
+function generateStars(score) {
+  const fullStars = Math.floor(score);
+  const halfStar = score % 1 >= 0.5;
+  const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+  
+  let starsHTML = '';
+  for (let i = 0; i < fullStars; i++) {
+    starsHTML += '<i class="fas fa-star"></i>';
+  }
+  if (halfStar) {
+    starsHTML += '<i class="fas fa-star-half-alt"></i>';
+  }
+  for (let i = 0; i < emptyStars; i++) {
+    starsHTML += '<i class="far fa-star"></i>';
+  }
+  return starsHTML;
+}
+
+function getInitial(name) {
+  if (!name) return '?';
+  return name.charAt(0).toUpperCase();
+}
+
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 
+                      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  const day = date.getDate();
+  const month = thaiMonths[date.getMonth()];
+  const year = date.getFullYear() + 543; // Convert to Buddhist year
+  return `${day} ${month} ${year}`;
+}
+
+async function checkCanReview(productId) {
+  const userData = sessionStorage.getItem('user_id');
+  console.log('🔍 Checking review eligibility...');
+  console.log('User ID from sessionStorage:', userData);
+  
+  if (!userData) {
+    console.log('❌ User not logged in - cannot review');
+    return; // User not logged in
+  }
+  
+  const userId = userData;
+  
+  try {
+    const url = `http://localhost:5000/api/products/${productId}/reviews/can-review?user_id=${userId}`;
+    console.log('📡 Fetching:', url);
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    console.log('✅ API Response:', data);
+    
+    if (data.success && data.can_review) {
+      // Show write review button
+      console.log('✨ User CAN review - showing button');
+      document.getElementById('writeReviewSection').style.display = 'block';
+    } else {
+      console.log('❌ User CANNOT review:', data.message);
+    }
+  } catch (error) {
+    console.error('💥 Error checking review eligibility:', error);
+  }
+}
+
+function setupReviewForm(productId) {
+  // Rating star selection
+  const ratingStars = document.querySelectorAll('.rating-input i');
+  const scoreInput = document.getElementById('reviewScore');
+  
+  ratingStars.forEach(star => {
+    star.addEventListener('click', function() {
+      const score = this.getAttribute('data-score');
+      scoreInput.value = score;
+      
+      // Update star display
+      ratingStars.forEach((s, idx) => {
+        if (idx < score) {
+          s.classList.remove('far');
+          s.classList.add('fas');
+          s.style.color = '#ffc107';
+        } else {
+          s.classList.remove('fas');
+          s.classList.add('far');
+          s.style.color = '#dee2e6';
+        }
+      });
+    });
+  });
+  
+  // Submit review
+  document.getElementById('submitReview').addEventListener('click', async function() {
+    const userId = sessionStorage.getItem('user_id');
+    if (!userId) {
+      showNotification('กรุณาเข้าสู่ระบบก่อนเขียนรีวิว', 'warning');
+      return;
+    }
+    
+    const score = scoreInput.value;
+    if (!score) {
+      showNotification('กรุณาเลือกคะแนน', 'warning');
+      return;
+    }
+    
+    const title = document.getElementById('reviewTitle').value.trim();
+    const description = document.getElementById('reviewDescription').value.trim();
+    
+    const reviewData = {
+      user_id: parseInt(userId),
+      score: parseInt(score),
+      title: title,
+      description: description
+    };
+    
+    try {
+      const response = await fetch(`http://localhost:5000/api/products/${productId}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reviewData)
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        showNotification('ส่งรีวิวสำเร็จ ขอบคุณค่ะ!', 'success');
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('reviewModal'));
+        modal.hide();
+        
+        // Reset form
+        document.getElementById('reviewForm').reset();
+        scoreInput.value = '';
+        ratingStars.forEach(s => {
+          s.classList.remove('fas');
+          s.classList.add('far');
+          s.style.color = '#dee2e6';
+        });
+        
+        // Reload reviews
+        loadReviews(productId);
+        
+        // Hide write review button
+        document.getElementById('writeReviewSection').style.display = 'none';
+      } else {
+        showNotification(data.message || 'เกิดข้อผิดพลาด', 'danger');
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      showNotification('เกิดข้อผิดพลาดในการส่งรีวิว', 'danger');
+    }
+  });
+}

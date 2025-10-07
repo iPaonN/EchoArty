@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models import db, User, UserInfo, Role, Order, OrderStatus, Product, get_thai_time, Category, product_categories
+from models import db, User, UserInfo, Role, Order, OrderStatus, Product, get_thai_time, Category, product_categories, Review
 
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_
@@ -1191,6 +1191,343 @@ def bad_request(error):
         'success': False,
         'message': 'Bad request'
     }), 400
+
+# ==================== Review API Endpoints ====================
+
+@app.route('/api/products/<int:p_id>/reviews', methods=['GET'])
+def get_product_reviews(p_id):
+    """Get all reviews for a specific product"""
+    try:
+        # Check if product exists
+        product = Product.query.get(p_id)
+        if not product:
+            return jsonify({
+                'success': False,
+                'message': 'Product not found'
+            }), 404
+        
+        # Get all reviews for this product
+        reviews = Review.query.filter_by(p_id=p_id).order_by(Review.review_date.desc()).all()
+        
+        # Calculate average score
+        avg_score = 0
+        if reviews:
+            total_score = sum(r.score for r in reviews)
+            avg_score = round(total_score / len(reviews), 1)
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'reviews': [review.to_dict() for review in reviews],
+                'total_reviews': len(reviews),
+                'average_score': avg_score
+            }
+        }), 200
+        
+    except Exception as e:
+        app.logger.error(f"API Get product reviews error: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Failed to fetch reviews: {str(e)}'
+        }), 500
+
+
+@app.route('/api/products/<int:p_id>/reviews/can-review', methods=['GET'])
+def check_can_review(p_id):
+    """Check if user can write a review for this product"""
+    try:
+        user_id = request.args.get('user_id', type=int)
+        
+        if not user_id:
+            return jsonify({
+                'success': False,
+                'message': 'user_id is required'
+            }), 400
+        
+        # Check if user exists
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': 'User not found'
+            }), 404
+        
+        # Check if product exists
+        product = Product.query.get(p_id)
+        if not product:
+            return jsonify({
+                'success': False,
+                'message': 'Product not found'
+            }), 404
+        
+        # Find completed status (check by name or by id = 5)
+        completed_status = OrderStatus.query.filter(
+            or_(
+                OrderStatus.name == 'completed', 
+                OrderStatus.name == 'delivered',
+                OrderStatus.s_id == 5  # Directly check for status_id = 5
+            )
+        ).first()
+        
+        if not completed_status:
+            return jsonify({
+                'success': False,
+                'message': 'Completed order status not found',
+                'can_review': False
+            }), 200
+        
+        # Check if user has a completed order for this product (status_id = 5 or completed status)
+        completed_order = Order.query.filter(
+            Order.u_id == user_id,
+            Order.p_id == p_id,
+            or_(Order.status_id == 5, Order.status_id == completed_status.s_id)
+        ).first()
+        
+        app.logger.info(f"🔍 Check review eligibility - User: {user_id}, Product: {p_id}, Completed Status ID: {completed_status.s_id}, Found Order: {completed_order is not None}")
+        
+        if not completed_order:
+            return jsonify({
+                'success': True,
+                'can_review': False,
+                'message': 'You must complete an order for this product before reviewing'
+            }), 200
+        
+        # Check if this specific order already has a review
+        existing_review = Review.query.filter_by(
+            o_id=completed_order.order_id
+        ).first()
+        
+        if existing_review:
+            return jsonify({
+                'success': True,
+                'can_review': False,
+                'message': 'You have already reviewed this order',
+                'review': existing_review.to_dict()
+            }), 200
+        
+        return jsonify({
+            'success': True,
+            'can_review': True,
+            'message': 'You can write a review for this product'
+        }), 200
+        
+    except Exception as e:
+        app.logger.error(f"API Check can review error: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Failed to check review eligibility: {str(e)}'
+        }), 500
+
+
+@app.route('/api/products/<int:p_id>/reviews', methods=['POST'])
+def create_review(p_id):
+    """Create a new review for a product"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['user_id', 'score']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({
+                    'success': False,
+                    'message': f'Missing required field: {field}'
+                }), 400
+        
+        user_id = data['user_id']
+        score = data['score']
+        title = data.get('title', '')
+        description = data.get('description', '')
+        
+        # Validate score
+        if not isinstance(score, int) or score < 1 or score > 5:
+            return jsonify({
+                'success': False,
+                'message': 'Score must be between 1 and 5'
+            }), 400
+        
+        # Check if user exists
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': 'User not found'
+            }), 404
+        
+        # Check if product exists
+        product = Product.query.get(p_id)
+        if not product:
+            return jsonify({
+                'success': False,
+                'message': 'Product not found'
+            }), 404
+        
+        # Check if user has completed order for this product
+        completed_status = OrderStatus.query.filter(
+            or_(
+                OrderStatus.name == 'completed', 
+                OrderStatus.name == 'delivered',
+                OrderStatus.s_id == 5  # Directly check for status_id = 5
+            )
+        ).first()
+        
+        if not completed_status:
+            return jsonify({
+                'success': False,
+                'message': 'Cannot verify order completion status'
+            }), 400
+        
+        # Check for orders with status_id = 5 or the completed status
+        completed_order = Order.query.filter(
+            Order.u_id == user_id,
+            Order.p_id == p_id,
+            or_(Order.status_id == 5, Order.status_id == completed_status.s_id)
+        ).first()
+        
+        if not completed_order:
+            return jsonify({
+                'success': False,
+                'message': 'You must complete an order for this product before reviewing'
+            }), 403
+        
+        # Check if this specific order already has a review
+        existing_review = Review.query.filter_by(
+            o_id=completed_order.order_id
+        ).first()
+        
+        if existing_review:
+            return jsonify({
+                'success': False,
+                'message': 'You have already reviewed this order'
+            }), 400
+        
+        # Create new review with o_id
+        new_review = Review(
+            p_id=p_id,
+            u_id=user_id,
+            o_id=completed_order.order_id,  # Link to the completed order
+            title=title,
+            description=description,
+            score=score,
+            review_date=get_thai_time()
+        )
+        
+        db.session.add(new_review)
+        db.session.commit()
+        
+        app.logger.info(f"Review created: {new_review.review_id} by user {user_id} for product {p_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Review created successfully',
+            'data': new_review.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"API Create review error: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Failed to create review: {str(e)}'
+        }), 500
+
+
+@app.route('/api/reviews/<int:review_id>', methods=['PUT'])
+def update_review(review_id):
+    """Update an existing review"""
+    try:
+        data = request.get_json()
+        
+        # Find the review
+        review = Review.query.get(review_id)
+        if not review:
+            return jsonify({
+                'success': False,
+                'message': 'Review not found'
+            }), 404
+        
+        # Verify user owns this review
+        user_id = data.get('user_id')
+        if not user_id or review.u_id != user_id:
+            return jsonify({
+                'success': False,
+                'message': 'Unauthorized to update this review'
+            }), 403
+        
+        # Update fields
+        if 'score' in data:
+            score = data['score']
+            if not isinstance(score, int) or score < 1 or score > 5:
+                return jsonify({
+                    'success': False,
+                    'message': 'Score must be between 1 and 5'
+                }), 400
+            review.score = score
+        
+        if 'title' in data:
+            review.title = data['title']
+        
+        if 'description' in data:
+            review.description = data['description']
+        
+        db.session.commit()
+        
+        app.logger.info(f"Review updated: {review_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Review updated successfully',
+            'data': review.to_dict()
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"API Update review error: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Failed to update review: {str(e)}'
+        }), 500
+
+
+@app.route('/api/reviews/<int:review_id>', methods=['DELETE'])
+def delete_review(review_id):
+    """Delete a review"""
+    try:
+        data = request.get_json()
+        
+        # Find the review
+        review = Review.query.get(review_id)
+        if not review:
+            return jsonify({
+                'success': False,
+                'message': 'Review not found'
+            }), 404
+        
+        # Verify user owns this review
+        user_id = data.get('user_id')
+        if not user_id or review.u_id != user_id:
+            return jsonify({
+                'success': False,
+                'message': 'Unauthorized to delete this review'
+            }), 403
+        
+        db.session.delete(review)
+        db.session.commit()
+        
+        app.logger.info(f"Review deleted: {review_id}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Review deleted successfully'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"API Delete review error: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Failed to delete review: {str(e)}'
+        }), 500
 
 if __name__ == '__main__':
     with app.app_context():
