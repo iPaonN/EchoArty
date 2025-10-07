@@ -1,11 +1,13 @@
 // Toy Detail JavaScript Functions
 
 // ======= PRICE CALCULATION FUNCTION =======
-function calculatePrice(basePrice, x, y, quantity) {
+function calculatePrice(basePrice, x, y, quantity, originalX, originalY) {
     x = parseFloat(x);
     y = parseFloat(y);
     quantity = parseInt(quantity) || 1;
     basePrice = parseFloat(basePrice);
+    originalX = parseFloat(originalX) || 1;
+    originalY = parseFloat(originalY) || 1;
 
     if (isNaN(x) || isNaN(y) || x <= 0 || y <= 0 || isNaN(basePrice)) {
         console.log("Invalid input values, using defaults");
@@ -13,24 +15,37 @@ function calculatePrice(basePrice, x, y, quantity) {
         y = 1;
     }
 
-    console.log(`Price calculation - Base: ${basePrice}, Size: ${x}x${y}, Quantity: ${quantity}`);
+    console.log(`Price calculation - Base: ${basePrice}, Original: ${originalX}x${originalY}, Current: ${x}x${y}, Quantity: ${quantity}`);
     
-    // Calculate ratio outside conditionals for cleaner code
-    const ratio = Math.max(x, y) / Math.min(x, y);
+    // ถ้าเป็นขนาดเดิม ใช้ราคาฐานเลย
+    if (x === originalX && y === originalY) {
+        const unitPrice = basePrice;
+        const totalPrice = unitPrice * quantity;
+        console.log(`Original size - Unit price: ${unitPrice}฿, Total: ${totalPrice}฿`);
+        return {
+            unitPrice: unitPrice,
+            totalPrice: totalPrice
+        };
+    }
+    
+    // คำนวณ scale factor จากขนาดเดิม
+    const originalRatio = Math.max(originalX, originalY) / Math.min(originalX, originalY);
+    const currentRatio = Math.max(x, y) / Math.min(x, y);
     
     let unitPrice;
+    
     if (Math.abs(x - y) < 0.001) { // Square (same dimensions)
-        unitPrice = basePrice * x;
-        console.log(`Square pricing: ${basePrice} × ${x} = ${unitPrice}`);
-    } else if (ratio > 5) {
-        unitPrice = basePrice * ((x + y) / 2);
-        console.log(`Extreme rectangle pricing: ${basePrice} × (${x} + ${y})/2 = ${unitPrice}`);
-    } else if (ratio > 2) {
-        unitPrice = basePrice * Math.max(x, y);
-        console.log(`Moderate rectangle pricing: ${basePrice} × max(${x},${y}) = ${unitPrice}`);
+        unitPrice = basePrice * (x / Math.max(originalX, originalY));
+        console.log(`Square pricing: ${basePrice} × (${x}/${Math.max(originalX, originalY)}) = ${unitPrice}`);
+    } else if (currentRatio > 5) {
+        unitPrice = basePrice * (((x + y) / 2) / ((originalX + originalY) / 2));
+        console.log(`Extreme rectangle pricing: ${basePrice} × scale = ${unitPrice}`);
+    } else if (currentRatio > 2) {
+        unitPrice = basePrice * (Math.max(x, y) / Math.max(originalX, originalY));
+        console.log(`Moderate rectangle pricing: ${basePrice} × (${Math.max(x, y)}/${Math.max(originalX, originalY)}) = ${unitPrice}`);
     } else {
-        unitPrice = basePrice * (x * y);
-        console.log(`Mild rectangle pricing: ${basePrice} × ${x} × ${y} = ${unitPrice}`);
+        unitPrice = basePrice * ((x * y) / (originalX * originalY));
+        console.log(`Mild rectangle pricing: ${basePrice} × (${x}×${y})/(${originalX}×${originalY}) = ${unitPrice}`);
     }
 
     // Multiply by quantity for final price
@@ -67,6 +82,19 @@ function getBasePrice() {
   return isNaN(price) ? 0 : price; // คืนค่า 0 ถ้าแปลงไม่ได้
 }
 
+function getOriginalSize() {
+  const container = document.querySelector(".product-detail-container");
+  const size = container.getAttribute("data-product-size");
+  if (size && size.includes(':')) {
+    const parts = size.split(':');
+    return {
+      width: parseFloat(parts[0]),
+      height: parseFloat(parts[1])
+    };
+  }
+  return { width: 1, height: 1 };
+}
+
 // Price calculation function
 function updatePrice() {
   const quantity = parseInt(document.getElementById("quantity").value) || 1;
@@ -81,8 +109,11 @@ function updatePrice() {
       return;
   }
   
+  // ดึงขนาดเดิม
+  const originalSize = getOriginalSize();
+  
   // คำนวณราคาโดยใช้ฟังก์ชัน calculatePrice
-  const priceResult = calculatePrice(basePrice, width, height, quantity);
+  const priceResult = calculatePrice(basePrice, width, height, quantity, originalSize.width, originalSize.height);
 
   // Update price displays
   document.getElementById("unitPrice").textContent = priceResult.unitPrice.toFixed(2) + "฿";
@@ -143,8 +174,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const height = parseFloat(document.getElementById("height").value);
     const customSize = width + ":" + height;
 
+    // ดึงขนาดเดิม
+    const originalSize = getOriginalSize();
+
     // คำนวณราคาจริงโดยใช้ฟังก์ชัน calculatePrice
-    const priceResult = calculatePrice(productPrice, width, height, quantity);
+    const priceResult = calculatePrice(productPrice, width, height, quantity, originalSize.width, originalSize.height);
 
     // Create cart item object
     const cartItem = {

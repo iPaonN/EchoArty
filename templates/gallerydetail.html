@@ -93,8 +93,21 @@ EchoArty{% endblock %} {% block extra_css %}
                   <!-- Dimensions section -->
                   <div class="mb-3">
                     <label class="form-label">
-                      <i class="fas fa-ruler me-1"></i>อัตราส่วน:
+                      <i class="fas fa-ruler-combined me-1"></i>อัตราส่วน (Scale Ratio):
                     </label>
+                    
+                    <!-- คำอธิบายอัตราส่วน -->
+                    <div class="alert alert-info py-2 mb-2" role="alert">
+                      <small>
+                        <i class="fas fa-lightbulb me-1"></i>
+                        <strong>อัตราส่วนคืออะไร?</strong> 
+                        เป็นขนาดของโมเดลเทียบกับของจริง เช่น <strong>1:6</strong> หมายถึง ขนาดจริง 6 หน่วย = โมเดล 1 หน่วย
+                        <br>
+                        <i class="fas fa-calculator me-1"></i>
+                        <strong>ราคาคำนวณจาก:</strong> การเปลี่ยนแปลงขนาดจะส่งผลต่อราคา (ใหญ่ขึ้น = แพงขึ้น)
+                      </small>
+                    </div>
+
                     <div class="row g-2">
                       <div class="col-3">
                         <input
@@ -105,6 +118,7 @@ EchoArty{% endblock %} {% block extra_css %}
                           min="{{ product.size.split(':')[0] if product.size and ':' in product.size else '1' }}"
                           step="1"
                           placeholder="กว้าง"
+                          title="ความกว้าง - ไม่ต่ำกว่าขนาดเดิม"
                         />
                       </div>
                       <div
@@ -121,13 +135,26 @@ EchoArty{% endblock %} {% block extra_css %}
                           min="{{ product.size.split(':')[1] if product.size and ':' in product.size else '1' }}"
                           step="1"
                           placeholder="สูง"
+                          title="ความสูง - ไม่ต่ำกว่าขนาดเดิม"
                         />
                       </div>
                       <div class="col-5 d-flex align-items-center">
                         <small class="text-muted ms-2">
-                          <i class="fas fa-info-circle me-1"></i>อัตราส่วนเดิม: <strong>{{ product.size or '1:1' }}</strong>
+                          <i class="fas fa-expand-arrows-alt me-1"></i>ขนาดเดิม: <strong class="text-primary">{{ product.size or '1:1' }}</strong>
                         </small>
                       </div>
+                    </div>
+                    
+                    <!-- ตัวอย่างอัตราส่วนที่นิยม -->
+                    <div class="mt-2">
+                      <small class="text-muted">
+                        <i class="fas fa-star me-1"></i>
+                        <strong>ตัวอย่างอัตราส่วนที่นิยม:</strong>
+                        <span class="badge bg-secondary ms-1">1:1</span> Life Size
+                        <span class="badge bg-secondary ms-1">1:6</span> Hot Toys
+                        <span class="badge bg-secondary ms-1">1:12</span> Figma
+                        <span class="badge bg-secondary ms-1">1:144</span> Gunpla HG
+                      </small>
                     </div>
                   </div>
 
