@@ -108,40 +108,108 @@ EchoArty{% endblock %} {% block extra_css %}
                       </small>
                     </div>
 
-                    <div class="row g-2">
-                      <div class="col-3">
-                        <input
-                          type="number"
-                          class="form-control text-center"
-                          id="width"
-                          value="{{ product.size.split(':')[0] if product.size and ':' in product.size else '1' }}"
-                          min="{{ product.size.split(':')[0] if product.size and ':' in product.size else '1' }}"
-                          step="1"
-                          placeholder="กว้าง"
-                          title="ความกว้าง - ไม่ต่ำกว่าขนาดเดิม"
-                        />
-                      </div>
-                      <div
-                        class="col-1 d-flex align-items-center justify-content-center"
+                    <!-- Scale Slider -->
+                    <div class="mb-3">
+                      <label class="form-label d-flex justify-content-between align-items-center">
+                        <span>
+                          <i class="fas fa-sliders-h me-1"></i>
+                          ปรับขนาด:
+                        </span>
+                        <span class="badge bg-primary fs-6" id="scaleDisplay">×1.0</span>
+                      </label>
+                      <input 
+                        type="range" 
+                        class="form-range" 
+                        id="scaleSlider" 
+                        min="0.5" 
+                        max="5" 
+                        step="0.1" 
+                        value="1"
+                        style="cursor: pointer;"
                       >
-                        <span class="fw-bold">:</span>
+                      <div class="d-flex justify-content-between small text-muted">
+                        <span>×0.5</span>
+                        <span>×1.0</span>
+                        <span>×2.0</span>
+                        <span>×3.0</span>
+                        <span>×5.0</span>
                       </div>
-                      <div class="col-3">
-                        <input
-                          type="number"
-                          class="form-control text-center"
-                          id="height"
-                          value="{{ product.size.split(':')[1] if product.size and ':' in product.size else '1' }}"
-                          min="{{ product.size.split(':')[1] if product.size and ':' in product.size else '1' }}"
-                          step="1"
-                          placeholder="สูง"
-                          title="ความสูง - ไม่ต่ำกว่าขนาดเดิม"
-                        />
+                    </div>
+
+                    <!-- Preset Buttons -->
+                    <div class="mb-3">
+                      <label class="form-label small">
+                        <i class="fas fa-magic me-1"></i>ขนาดแนะนำ:
+                      </label>
+                      <div class="btn-group w-100" role="group">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setScale(0.5)">
+                          <i class="fas fa-compress me-1"></i>เล็ก (×0.5)
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="setScale(1)">
+                          <i class="fas fa-equals me-1"></i>เดิม (×1)
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setScale(2)">
+                          <i class="fas fa-expand me-1"></i>ใหญ่ (×2)
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="setScale(3)">
+                          <i class="fas fa-expand-arrows-alt me-1"></i>ใหญ่พิเศษ (×3)
+                        </button>
                       </div>
-                      <div class="col-5 d-flex align-items-center">
-                        <small class="text-muted ms-2">
-                          <i class="fas fa-expand-arrows-alt me-1"></i>ขนาดเดิม: <strong class="text-primary">{{ product.size or '1:1' }}</strong>
-                        </small>
+                    </div>
+
+                    <!-- Dimensions Display & Manual Input -->
+                    <div class="mb-3">
+                      <div class="row g-2 align-items-center">
+                        <div class="col-12 mb-1">
+                          <label class="form-label small mb-1">
+                            <i class="fas fa-ruler-combined me-1"></i>
+                            ขนาดปัจจุบัน:
+                            <span class="text-muted ms-1">(ต้นฉบับ: {{ product.size or '1:1' }})</span>
+                          </label>
+                        </div>
+                        <div class="col-5">
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text">กว้าง</span>
+                            <input
+                              type="number"
+                              class="form-control text-center"
+                              id="width"
+                              value="{{ product.size.split(':')[0] if product.size and ':' in product.size else '1' }}"
+                              min="0.1"
+                              step="0.1"
+                            />
+                          </div>
+                        </div>
+                        <div class="col-2 text-center">
+                          <button 
+                            type="button" 
+                            class="btn btn-sm" 
+                            id="lockRatioBtn"
+                            onclick="toggleLockRatio()"
+                            title="คลิกเพื่อล็อค/ปลดล็อคอัตราส่วน"
+                          >
+                            <i class="fas fa-lock text-primary" id="lockIcon"></i>
+                          </button>
+                        </div>
+                        <div class="col-5">
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text">สูง</span>
+                            <input
+                              type="number"
+                              class="form-control text-center"
+                              id="height"
+                              value="{{ product.size.split(':')[1] if product.size and ':' in product.size else '1' }}"
+                              min="0.1"
+                              step="0.1"
+                            />
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <span id="dimensionInfo">กว้าง × สูง = พื้นที่</span>
+                          </small>
+                        </div>
                       </div>
                     </div>
                     

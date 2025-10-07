@@ -50,6 +50,14 @@ function renderCartItems(cart) {
     row.setAttribute('data-product-id', item.product_id);
     row.setAttribute('data-cart-index', index);
     
+    // ใช้ unit_price ถ้ามี ไม่งั้นใช้ product_price (backward compatible)
+    const unitPrice = item.unit_price || item.product_price;
+    const subtotal = item.subtotal || (unitPrice * item.quantity);
+    
+    // แสดงขนาดที่เลือก
+    const displaySize = item.custom_size || item.product_size || '1:1';
+    const scaleInfo = item.scale_multiplier ? ` <span class="badge bg-info">×${item.scale_multiplier}</span>` : '';
+    
     row.innerHTML = `
       <td>
         <img
@@ -59,9 +67,13 @@ function renderCartItems(cart) {
           style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;"
         />
       </td>
-      <td>${item.product_name}</td>
-      <td class="price-value">฿${parseFloat(item.product_price).toFixed(2)}</td>
-      <td>${item.product_size || '1:1'}</td>
+      <td>
+        ${item.product_name}
+        ${item.original_size && item.custom_size !== item.original_size ? 
+          `<br><small class="text-muted">เดิม: ${item.original_size}</small>` : ''}
+      </td>
+      <td class="text-muted"><small>฿${parseFloat(item.product_price).toFixed(2)}</small></td>
+      <td>${displaySize}${scaleInfo}</td>
       <td class="text-center">
         <div class="quantity-controls">
           <button
@@ -79,8 +91,8 @@ function renderCartItems(cart) {
           </button>
         </div>
       </td>
-      <td class="price-value">฿${parseFloat(item.product_price).toFixed(2)}</td>
-      <td class="subtotal-value">฿${(item.product_price * item.quantity).toFixed(2)}</td>
+      <td class="price-value"><strong>฿${parseFloat(unitPrice).toFixed(2)}</strong></td>
+      <td class="subtotal-value"><strong>฿${parseFloat(subtotal).toFixed(2)}</strong></td>
       <td class="text-center">
         <div class="d-flex gap-2 justify-content-center flex-nowrap">
           <button
@@ -90,7 +102,10 @@ function renderCartItems(cart) {
             data-product-name="${item.product_name}"
             data-product-image="${item.product_image || 'dummy.jpg'}"
             data-product-price="${item.product_price}"
-            data-product-size="${item.product_size || '1:1'}"
+            data-unit-price="${unitPrice}"
+            data-original-size="${item.original_size || item.product_size || '1:1'}"
+            data-custom-size="${displaySize}"
+            data-scale-multiplier="${item.scale_multiplier || '1.0'}"
             data-product-quantity="${item.quantity}"
             data-product-id="${item.product_id}"
             data-product-details="${item.order_details || ''}"
@@ -171,8 +186,13 @@ function updateQuantityInCart(cartIndex, change) {
   if (cartIndex < 0 || cartIndex >= cart.length) return;
   
   const newQuantity = Math.max(1, cart[cartIndex].quantity + change);
+  const unitPrice = cart[cartIndex].unit_price || cart[cartIndex].product_price;
+  
   cart[cartIndex].quantity = newQuantity;
-  cart[cartIndex].subtotal = cart[cartIndex].product_price * newQuantity;
+  cart[cartIndex].subtotal = unitPrice * newQuantity; // ✅ ใช้ unit_price แทน product_price
+  cart[cartIndex].updated_at = new Date().toISOString();
+  
+  console.log(`📦 Updated quantity: ${cart[cartIndex].product_name} - Qty: ${newQuantity}, Unit: ${unitPrice}฿, Subtotal: ${cart[cartIndex].subtotal}฿`);
   
   // Save to localStorage
   localStorage.setItem('cart', JSON.stringify(cart));
@@ -547,15 +567,18 @@ function showDetailModal(button) {
     const productData = {
       name: button.getAttribute("data-product-name") || "ไม่ระบุชื่อสินค้า",
       image: button.getAttribute("data-product-image") || "dummy.jpg",
-      price: parseFloat(button.getAttribute("data-product-price")) || 0,
-      size: button.getAttribute("data-product-size") || "1:1",
+      basePrice: parseFloat(button.getAttribute("data-product-price")) || 0,
+      unitPrice: parseFloat(button.getAttribute("data-unit-price")) || 0,
+      originalSize: button.getAttribute("data-original-size") || "1:1",
+      customSize: button.getAttribute("data-custom-size") || "1:1",
+      scaleMultiplier: button.getAttribute("data-scale-multiplier") || "1.0",
       quantity: parseInt(button.getAttribute("data-product-quantity")) || 1,
       product_id: button.getAttribute("data-product-id") || "",
       details: button.getAttribute("data-product-details") || "",
     };
 
     // Debug logging
-    console.log("Product data:", productData);
+    console.log("📋 Product detail modal data:", productData);
 
     // Update modal content
     const modal = document.getElementById("productDetailModal");
@@ -579,16 +602,44 @@ function showDetailModal(button) {
       modalProductImage.alt = productData.name;
     }
 
-    // Set product price
-    const modalProductPrice = modal.querySelector("#modalProductPrice");
-    if (modalProductPrice) {
-      modalProductPrice.textContent = productData.price.toFixed(2);
+    // Set base price
+    const modalBasePrice = modal.querySelector("#modalProductBasePrice");
+    if (modalBasePrice) {
+      modalBasePrice.textContent = productData.basePrice.toFixed(2);
     }
 
-    // Set product size/ratio
-    const modalProductSize = modal.querySelector("#modalProductSize");
-    if (modalProductSize) {
-      modalProductSize.textContent = productData.size;
+    // Set original size
+    const modalOriginalSize = modal.querySelector("#modalOriginalSize");
+    if (modalOriginalSize) {
+      modalOriginalSize.textContent = productData.originalSize;
+    }
+
+    // Set custom size
+    const modalCustomSize = modal.querySelector("#modalCustomSize");
+    if (modalCustomSize) {
+      modalCustomSize.textContent = productData.customSize;
+    }
+
+    // Set scale badge
+    const modalScaleBadge = modal.querySelector("#modalScaleBadge");
+    if (modalScaleBadge) {
+      modalScaleBadge.textContent = `×${productData.scaleMultiplier}`;
+      
+      // เปลี่ยนสีตาม scale
+      const scale = parseFloat(productData.scaleMultiplier);
+      if (scale > 1) {
+        modalScaleBadge.className = 'badge bg-success ms-1';
+      } else if (scale < 1) {
+        modalScaleBadge.className = 'badge bg-warning ms-1';
+      } else {
+        modalScaleBadge.className = 'badge bg-info ms-1';
+      }
+    }
+
+    // Set unit price
+    const modalUnitPrice = modal.querySelector("#modalUnitPrice");
+    if (modalUnitPrice) {
+      modalUnitPrice.textContent = productData.unitPrice.toFixed(2);
     }
 
     // Set product quantity
@@ -600,7 +651,7 @@ function showDetailModal(button) {
     // Calculate and set total price
     const modalProductTotal = modal.querySelector("#modalProductTotal");
     if (modalProductTotal) {
-      const total = (productData.price * productData.quantity).toFixed(2);
+      const total = (productData.unitPrice * productData.quantity).toFixed(2);
       modalProductTotal.textContent = total;
     }
 
@@ -610,11 +661,10 @@ function showDetailModal(button) {
       if (productData.details && productData.details.trim() !== '') {
         modalProductDetail.textContent = productData.details;
       } else {
-        modalProductDetail.textContent = `รายละเอียดสินค้า ${
-          productData.name
-        } - ขนาดอัตราส่วน ${productData.size} ราคา ฿${productData.price.toFixed(
-          2
-        )} ต่อชิ้น`;
+        const sizeChange = productData.originalSize !== productData.customSize 
+          ? ` (ปรับจาก ${productData.originalSize} เป็น ${productData.customSize})`
+          : '';
+        modalProductDetail.textContent = `รายละเอียดสินค้า ${productData.name}${sizeChange} - ราคา ฿${productData.unitPrice.toFixed(2)} ต่อชิ้น`;
       }
     }
 
@@ -622,9 +672,9 @@ function showDetailModal(button) {
     const bsModal = new bootstrap.Modal(modal);
     bsModal.show();
 
-    console.log("Modal should be displayed now");
+    console.log("✅ Modal displayed successfully");
   } catch (error) {
-    console.error("Error showing product detail modal:", error);
+    console.error("❌ Error showing product detail modal:", error);
     showNotification(
       `เกิดข้อผิดพลาดในการแสดงรายละเอียดสินค้า: ${error.message}`,
       "error"

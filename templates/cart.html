@@ -220,55 +220,82 @@ block extra_css %}
             </div>
 
             <div class="product-info-grid">
-              <div class="info-item row mb-3">
-                <div class="col-4">
+              <div class="info-item row mb-2">
+                <div class="col-5">
                   <span class="info-label"
-                    ><i class="fas fa-tag me-2 text-primary"></i>ราคา:</span
+                    ><i class="fas fa-tag me-2 text-muted"></i>ราคาฐาน:</span
                   >
                 </div>
-                <div class="col-8">
-                  <span class="info-value text-primary fw-bold fs-5"
-                    >฿<span id="modalProductPrice">0.00</span></span
+                <div class="col-7">
+                  <span class="info-value text-muted"
+                    >฿<span id="modalProductBasePrice">0.00</span></span
                   >
                 </div>
               </div>
 
-              <div class="info-item row mb-3">
-                <div class="col-4">
+              <div class="info-item row mb-2">
+                <div class="col-5">
                   <span class="info-label"
-                    ><i class="fas fa-expand me-2 text-info"></i
-                    >อัตราส่วน:</span
+                    ><i class="fas fa-ruler me-2 text-muted"></i>ขนาดเดิม:</span
                   >
                 </div>
-                <div class="col-8">
-                  <span class="info-value fw-semibold" id="modalProductSize"
+                <div class="col-7">
+                  <span class="info-value text-muted" id="modalOriginalSize"
                     >1:1</span
                   >
                 </div>
               </div>
 
-              <div class="info-item row mb-3">
-                <div class="col-4">
+              <div class="info-item row mb-3 border-top pt-2">
+                <div class="col-5">
                   <span class="info-label"
-                    ><i class="fas fa-cubes me-2 text-success"></i>ปริมาณ:</span
+                    ><i class="fas fa-expand-arrows-alt me-2 text-info"></i
+                    >ขนาดที่สั่ง:</span
                   >
                 </div>
-                <div class="col-8">
+                <div class="col-7">
+                  <span class="info-value fw-semibold" id="modalCustomSize"
+                    >1:1</span
+                  >
+                  <span class="badge bg-info ms-1" id="modalScaleBadge">×1.0</span>
+                </div>
+              </div>
+
+              <div class="info-item row mb-3">
+                <div class="col-5">
+                  <span class="info-label"
+                    ><i class="fas fa-coins me-2 text-primary"></i>ราคาต่อชิ้น:</span
+                  >
+                </div>
+                <div class="col-7">
+                  <span class="info-value text-primary fw-bold fs-5"
+                    >฿<span id="modalUnitPrice">0.00</span></span
+                  >
+                </div>
+              </div>
+
+              <div class="info-item row mb-3">
+                <div class="col-5">
+                  <span class="info-label"
+                    ><i class="fas fa-cubes me-2 text-success"></i>จำนวน:</span
+                  >
+                </div>
+                <div class="col-7">
                   <span class="info-value fw-semibold" id="modalProductQuantity"
                     >1</span
                   >
                 </div>
               </div>
 
-              <div class="info-item row mb-3">
-                <div class="col-4">
+              <div class="info-item row mb-3 border-top pt-2">
+                <div class="col-5">
                   <span class="info-label"
-                    ><i class="fas fa-calculator me-2 text-warning"></i
+                    ><i class="fas fa-calculator me-2 text-danger"></i
                     >ราคารวม:</span
                   >
                 </div>
-                <div class="col-8">
-                  <span class="info-value text-danger fw-bold fs-5"
+                <div class="col-7">
+                  <span class="info-value text-danger fw-bold fs-4"
                     >฿<span id="modalProductTotal">0.00</span></span
                   >
                 </div>

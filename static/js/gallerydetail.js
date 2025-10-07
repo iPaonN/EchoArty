@@ -75,6 +75,131 @@ function decreaseQuantity() {
   }
 }
 
+// Scale management functions (maintain aspect ratio)
+let isRatioLocked = true; // เริ่มต้นล็อคอัตราส่วน
+let isUpdatingFromSlider = false; // ป้องกัน infinite loop
+
+// Toggle lock/unlock ratio
+function toggleLockRatio() {
+  isRatioLocked = !isRatioLocked;
+  const lockIcon = document.getElementById("lockIcon");
+  
+  if (isRatioLocked) {
+    lockIcon.className = "fas fa-lock text-primary";
+    showNotification("ล็อคอัตราส่วนแล้ว - ขนาดจะปรับตามสัดส่วนเดิม", "info");
+  } else {
+    lockIcon.className = "fas fa-unlock text-secondary";
+    showNotification("ปลดล็อคอัตราส่วน - สามารถปรับขนาดอิสระได้", "info");
+  }
+}
+
+// Set scale from preset buttons
+function setScale(multiplier) {
+  const slider = document.getElementById("scaleSlider");
+  slider.value = multiplier;
+  updateDimensionsFromSlider(multiplier);
+}
+
+// Update dimensions from slider
+function updateDimensionsFromSlider(sliderValue) {
+  if (isUpdatingFromSlider) return;
+  isUpdatingFromSlider = true;
+  
+  const originalSize = getOriginalSize();
+  const scale = parseFloat(sliderValue);
+  
+  // คำนวณขนาดใหม่
+  const newWidth = (originalSize.width * scale).toFixed(1);
+  const newHeight = (originalSize.height * scale).toFixed(1);
+  
+  // อัปเดต inputs
+  document.getElementById("width").value = newWidth;
+  document.getElementById("height").value = newHeight;
+  
+  // อัปเดต badge
+  document.getElementById("scaleDisplay").textContent = `×${scale.toFixed(1)}`;
+  
+  // อัปเดตข้อมูล
+  updateDimensionInfo(newWidth, newHeight, originalSize);
+  
+  // คำนวณราคา
+  updatePrice();
+  
+  isUpdatingFromSlider = false;
+}
+
+// Update dimension info display
+function updateDimensionInfo(width, height, originalSize) {
+  const w = parseFloat(width);
+  const h = parseFloat(height);
+  const area = (w * h).toFixed(2);
+  const originalArea = (originalSize.width * originalSize.height).toFixed(2);
+  const areaIncrease = ((area / originalArea - 1) * 100).toFixed(0);
+  
+  let infoText = `${w} × ${h} = ${area} หน่วย²`;
+  if (areaIncrease > 0) {
+    infoText += ` (+${areaIncrease}% จากเดิม)`;
+  } else if (areaIncrease < 0) {
+    infoText += ` (${areaIncrease}% จากเดิม)`;
+  }
+  
+  document.getElementById("dimensionInfo").textContent = infoText;
+}
+
+// Handle manual width input with ratio lock
+function handleWidthChange() {
+  if (isUpdatingFromSlider) return;
+  
+  const width = parseFloat(document.getElementById("width").value);
+  const originalSize = getOriginalSize();
+  
+  if (isRatioLocked && !isNaN(width)) {
+    // คำนวณ height ตามอัตราส่วนเดิม
+    const ratio = originalSize.height / originalSize.width;
+    const newHeight = (width * ratio).toFixed(1);
+    document.getElementById("height").value = newHeight;
+    
+    // อัปเดต slider
+    const scale = width / originalSize.width;
+    document.getElementById("scaleSlider").value = scale;
+    document.getElementById("scaleDisplay").textContent = `×${scale.toFixed(1)}`;
+  }
+  
+  updateDimensionInfo(
+    document.getElementById("width").value,
+    document.getElementById("height").value,
+    originalSize
+  );
+  updatePrice();
+}
+
+// Handle manual height input with ratio lock
+function handleHeightChange() {
+  if (isUpdatingFromSlider) return;
+  
+  const height = parseFloat(document.getElementById("height").value);
+  const originalSize = getOriginalSize();
+  
+  if (isRatioLocked && !isNaN(height)) {
+    // คำนวณ width ตามอัตราส่วนเดิม
+    const ratio = originalSize.width / originalSize.height;
+    const newWidth = (height * ratio).toFixed(1);
+    document.getElementById("width").value = newWidth;
+    
+    // อัปเดต slider
+    const scale = height / originalSize.height;
+    document.getElementById("scaleSlider").value = scale;
+    document.getElementById("scaleDisplay").textContent = `×${scale.toFixed(1)}`;
+  }
+  
+  updateDimensionInfo(
+    document.getElementById("width").value,
+    document.getElementById("height").value,
+    originalSize
+  );
+  updatePrice();
+}
+
 function getBasePrice() {
   const container = document.querySelector(".product-detail-container");
   // อ่านค่า data-product-price และแปลงเป็นตัวเลข (float)
@@ -122,15 +247,25 @@ function updatePrice() {
 
 // Initialize when page loads
 document.addEventListener("DOMContentLoaded", function () {
+  // Initialize ratio lock state
+  isRatioLocked = true;
+  
+  // Initialize dimension info
+  const originalSize = getOriginalSize();
+  updateDimensionInfo(originalSize.width, originalSize.height, originalSize);
+  
   // Initialize price calculation
   updatePrice();
 
-  // Add event listener for quantity input changes
+  // Add event listeners
   document.getElementById("quantity").addEventListener("input", updatePrice);
+  document.getElementById("width").addEventListener("input", handleWidthChange);
+  document.getElementById("height").addEventListener("input", handleHeightChange);
   
-  // Add event listeners for dimension changes
-  document.getElementById("width").addEventListener("input", updatePrice);
-  document.getElementById("height").addEventListener("input", updatePrice);
+  // Slider event listener
+  document.getElementById("scaleSlider").addEventListener("input", function(e) {
+    updateDimensionsFromSlider(e.target.value);
+  });
 
   // File upload handling
   document
@@ -165,14 +300,14 @@ document.addEventListener("DOMContentLoaded", function () {
     const productName = container.getAttribute("data-product-name");
     const productPrice = parseFloat(container.getAttribute("data-product-price"));
     const productImage = container.getAttribute("data-product-image");
-    const productSize = container.getAttribute("data-product-size");
+    const productSize = container.getAttribute("data-product-size"); // ขนาดเดิม
 
     // Get form data
     const orderDetails = document.getElementById("orderDetails").value.trim();
     const quantity = parseInt(document.getElementById("quantity").value);
     const width = parseFloat(document.getElementById("width").value);
     const height = parseFloat(document.getElementById("height").value);
-    const customSize = width + ":" + height;
+    const customSize = width + ":" + height; // ขนาดที่เลือก
 
     // ดึงขนาดเดิม
     const originalSize = getOriginalSize();
@@ -180,17 +315,23 @@ document.addEventListener("DOMContentLoaded", function () {
     // คำนวณราคาจริงโดยใช้ฟังก์ชัน calculatePrice
     const priceResult = calculatePrice(productPrice, width, height, quantity, originalSize.width, originalSize.height);
 
-    // Create cart item object
+    // คำนวณ scale multiplier
+    const scaleMultiplier = (width / originalSize.width).toFixed(1);
+
+    // Create cart item object with complete data
     const cartItem = {
       product_id: productId,
       product_name: productName,
-      product_price: productPrice,
+      product_price: productPrice,           // ราคาฐาน
       product_image: productImage,
-      product_size: customSize,
+      original_size: productSize,            // ✅ ขนาดเดิม "2:3"
+      custom_size: customSize,               // ✅ ขนาดที่เลือก "4:6"
+      scale_multiplier: scaleMultiplier,     // ✅ ตัวคูณ "2.0"
       quantity: quantity,
       order_details: orderDetails,
-      unit_price: priceResult.unitPrice,
-      subtotal: priceResult.totalPrice
+      unit_price: priceResult.unitPrice,     // ราคาต่อหน่วยที่คำนวณแล้ว
+      subtotal: priceResult.totalPrice,      // ราคารวม
+      added_at: new Date().toISOString()     // เวลาที่เพิ่ม
     };
 
     // Add to cart (localStorage)
@@ -204,7 +345,10 @@ document.addEventListener("DOMContentLoaded", function () {
     button.disabled = true;
 
     // Show notification
-    showNotification("เพิ่มสินค้าลงตะกร้าสำเร็จ!", "success");
+    showNotification(
+      `เพิ่ม ${productName} (${customSize}) ลงตะกร้าสำเร็จ!`, 
+      "success"
+    );
 
     setTimeout(() => {
       button.innerHTML = originalText;
@@ -213,7 +357,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 2000);
 
     // Log for debugging
-    console.log("Added to cart:", cartItem);
+    console.log("✅ Added to cart:", cartItem);
   });
 });
 
@@ -222,19 +366,41 @@ function addToCart(cartItem) {
   // Get existing cart from localStorage
   let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-  // Check if product already exists in cart
+  // Check if product already exists in cart (same product ID and custom size)
   const existingItemIndex = cart.findIndex(item => 
     item.product_id === cartItem.product_id && 
-    item.product_size === cartItem.product_size
+    item.custom_size === cartItem.custom_size  // ✅ เปลี่ยนจาก product_size เป็น custom_size
   );
 
   if (existingItemIndex > -1) {
     // Update quantity if item exists
+    const oldQuantity = cart[existingItemIndex].quantity;
     cart[existingItemIndex].quantity += cartItem.quantity;
-    cart[existingItemIndex].subtotal = cart[existingItemIndex].quantity * cart[existingItemIndex].product_price;
+    
+    // อัปเดต unit_price และ subtotal
+    cart[existingItemIndex].unit_price = cartItem.unit_price;
+    cart[existingItemIndex].subtotal = cart[existingItemIndex].quantity * cartItem.unit_price;
+    
+    // อัปเดต timestamp
+    cart[existingItemIndex].updated_at = new Date().toISOString();
+    
+    console.log(`📦 Updated existing item in cart:`);
+    console.log(`  - Product: ${cartItem.product_name}`);
+    console.log(`  - Size: ${cartItem.custom_size} (×${cartItem.scale_multiplier})`);
+    console.log(`  - Quantity: ${oldQuantity} → ${cart[existingItemIndex].quantity}`);
+    console.log(`  - Unit Price: ${cartItem.unit_price.toFixed(2)}฿`);
+    console.log(`  - Subtotal: ${cart[existingItemIndex].subtotal.toFixed(2)}฿`);
   } else {
     // Add new item to cart
     cart.push(cartItem);
+    
+    console.log(`🆕 Added new item to cart:`);
+    console.log(`  - Product: ${cartItem.product_name}`);
+    console.log(`  - Original Size: ${cartItem.original_size}`);
+    console.log(`  - Custom Size: ${cartItem.custom_size} (×${cartItem.scale_multiplier})`);
+    console.log(`  - Quantity: ${cartItem.quantity}`);
+    console.log(`  - Unit Price: ${cartItem.unit_price.toFixed(2)}฿`);
+    console.log(`  - Subtotal: ${cartItem.subtotal.toFixed(2)}฿`);
   }
 
   // Save to localStorage
@@ -243,7 +409,13 @@ function addToCart(cartItem) {
   // Update cart badge if exists
   updateCartBadge();
   
-  console.log('Cart updated:', cart);
+  const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const grandTotal = cart.reduce((sum, item) => sum + item.subtotal, 0);
+  
+  console.log(`🛒 Cart Summary:`);
+  console.log(`  - Unique items: ${cart.length}`);
+  console.log(`  - Total quantity: ${totalQuantity}`);
+  console.log(`  - Grand total: ${grandTotal.toFixed(2)}฿`);
 }
 
 function updateCartBadge() {
@@ -304,6 +476,8 @@ function showNotification(message, type = 'info') {
 // Global functions for button onclick events
 window.increaseQuantity = increaseQuantity;
 window.decreaseQuantity = decreaseQuantity;
+window.setScale = setScale;
+window.toggleLockRatio = toggleLockRatio;
 window.addToCart = addToCart;
 window.showNotification = showNotification;
 
