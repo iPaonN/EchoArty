@@ -41,6 +41,12 @@
       </a>
     </div>
 
+    <!-- Product Count Display -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <span id="productCount" class="text-muted"></span>
+      <small class="text-muted">คลิกที่ตัวกรองเพื่อกรองตามหมวดหมู่</small>
+    </div>
+
     <!-- Products Table -->
     <div class="table-responsive">
       <table class="table table-hover">
@@ -138,15 +144,17 @@
     <div class="offcanvas-body">
       <div class="list-group">
         <a
-          href="{{ url_for('manage_product') }}"
-          class="list-group-item list-group-item-action"
+          href="javascript:void(0)"
+          class="list-group-item list-group-item-action category-filter-btn active"
+          data-category-id="all"
         >
           <i class="fas fa-th-large me-2"></i>ทั้งหมด
         </a>
         {% if categories %} {% for category in categories %}
         <a
-          href="{{ url_for('manage_products_by_category', category_id=category.c_id) }}"
-          class="list-group-item list-group-item-action"
+          href="javascript:void(0)"
+          class="list-group-item list-group-item-action category-filter-btn"
+          data-category-id="{{ category.c_id }}"
         >
           <i class="fas fa-tag me-2"></i>{{ category.name }}
         </a>

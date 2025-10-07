@@ -138,12 +138,24 @@ def inject_user_permissions():
 @app.route('/')
 def home():
     """หน้าแรก - เข้าได้ทุกคน"""
-    return render_template('home.html')
+    categories_data = []
+    try:
+        # Get categories with products
+        response = requests.get(f'{API_BASE_URL}/categories-with-products')
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                categories_data = result.get('data', [])
+    except Exception as e:
+        print(f"Error fetching categories with products: {e}")
+        
+    return render_template('home.html', categories=categories_data)
 
 @app.route('/gallery')
 def gallery():
     """Toy page route - consumes API"""
     products_data = []
+    categories_data = []
     try:
         # 1. เรียกใช้งาน API endpoint /api/gallery
         response = requests.get(f'{API_BASE_URL}/gallery')
@@ -165,8 +177,20 @@ def gallery():
     except Exception as e:
         flash(f'An unexpected error occurred: {e}', 'error')
 
-    # 3. ส่งตัวแปร products_data (ที่ได้จาก API) ไปให้ gallery.html
-    return render_template('gallery.html', products=products_data, url_for_detail=url_for('gallery_detail', p_id=0))
+    # Load categories for filtering
+    try:
+        categories_response = requests.get(f'{API_BASE_URL}/categories')
+        categories_response.raise_for_status()
+        
+        categories_result = categories_response.json()
+        if categories_result.get('success'):
+            categories_data = categories_result.get('data', [])
+            
+    except Exception as e:
+        print(f"Error fetching categories for gallery: {e}")
+
+    # 3. ส่งตัวแปร products_data และ categories_data ไปให้ gallery.html
+    return render_template('gallery.html', products=products_data, categories=categories_data, url_for_detail=url_for('gallery_detail', p_id=0))
 
 @app.route('/gallery/detail/<int:p_id>')
 def gallery_detail(p_id):

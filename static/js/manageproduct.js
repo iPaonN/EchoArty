@@ -11,6 +11,7 @@ function initializeManageProduct() {
   setupModals();
   setupFormHandlers();
   setupImagePreviews();
+  initializeCategoryFilters();
   fetchProducts(); 
 }
 
@@ -31,60 +32,147 @@ function showNotification(message, type = "success") {
       ? "linear-gradient(45deg, #4CAF50, #66BB6A)"
       : type === "error"
       ? "linear-gradient(45deg, #f44336, #ef5350)"
-      : type === "warning"
+      : type === "warning" 
       ? "linear-gradient(45deg, #ff9800, #ffb74d)"
-      : "linear-gradient(45deg, #2196f3, #42a5f5)";
-
-  const textColor = type === "warning" ? "#333" : "white";
-  const shadowColor =
-    type === "success"
-      ? "rgba(76, 175, 80, 0.3)"
-      : type === "error"
-      ? "rgba(244, 67, 54, 0.3)"
-      : type === "warning"
-      ? "rgba(255, 193, 7, 0.3)"
-      : "rgba(33, 150, 243, 0.3)";
-
-  notification.style.cssText = `
-        position: fixed;
-        bottom: 120px;
-        right: 20px;
-        background: ${bgColor};
-        color: ${textColor};
-        padding: 15px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px ${shadowColor};
-        z-index: 9999;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        animation: slideInNotification 0.5s ease-out;
-        border: 2px solid rgba(255, 255, 255, 0.8);
-    `;
+      : "linear-gradient(45deg, #2196f3, #42a5f5)"; // info
 
   const icon =
     type === "success"
-      ? "fa-check-circle"
+      ? "fas fa-check-circle"
       : type === "error"
-      ? "fa-exclamation-circle"
+      ? "fas fa-exclamation-circle"
       : type === "warning"
-      ? "fa-exclamation-triangle"
-      : "fa-info-circle";
+      ? "fas fa-exclamation-triangle"
+      : "fas fa-info-circle";
 
-  notification.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
+  notification.innerHTML = `
+    <i class="${icon} me-2"></i>
+    ${message}
+  `;
+  notification.style.background = bgColor;
+
+  // Append to body
   document.body.appendChild(notification);
 
-  // Auto remove after 4 seconds
+  // Auto-remove after 3 seconds
   setTimeout(() => {
     if (notification && notification.parentNode) {
-      notification.style.animation = "slideOutNotification 0.5s ease-in";
-      setTimeout(() => {
-        notification.remove();
-      }, 500);
+      notification.remove();
     }
-  }, 4000);
+  }, 3000);
 }
+
+// ======= CATEGORY FILTERING FUNCTIONS =======
+let allProducts = []; // Store all products for filtering
+let currentFilterCategory = 'all'; // Current active filter
+
+async function fetchProducts(categoryFilter = null) {
+    const tableBody = document.getElementById('productTableBody');
+    // แสดงข้อความกำลังโหลด
+    tableBody.innerHTML = '<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>กำลังโหลดข้อมูลสินค้า...</td></tr>';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/manage-product`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const result = await response.json();
+
+        if (result.success) {
+            allProducts = result.data; // Store all products
+            
+            // Apply category filter if specified
+            const productsToShow = categoryFilter ? filterProductsByCategory(allProducts, categoryFilter) : allProducts;
+            
+            renderProductTable(productsToShow);
+            updateProductCount(productsToShow.length, allProducts.length);
+            console.log(`โหลดข้อมูลสินค้าสำเร็จ: ${result.data.length} รายการ`);
+            
+            // Only show success notification on initial load, not on filtering
+            if (!categoryFilter) {
+                showNotification(`โหลดข้อมูลสินค้าสำเร็จ: ${result.data.length} รายการ`, 'success');
+            }
+        } else {
+            tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>ไม่สามารถโหลดข้อมูลสินค้า: ' + (result.message || 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ') + '</td></tr>';
+            showNotification(`เกิดข้อผิดพลาดในการโหลดข้อมูล: ${result.message}`, 'error');
+        }
+    } catch (error) {
+        console.error("Error fetching products:", error);
+        tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger"><i class="fas fa-plug me-2"></i>ไม่สามารถเชื่อมต่อกับ API Backend ได้</td></tr>';
+        showNotification('เกิดข้อผิดพลาดในการเชื่อมต่อ API', 'error');
+    }
+}
+
+function filterProductsByCategory(products, categoryId) {
+    if (categoryId === 'all') {
+        return products;
+    }
+    
+    return products.filter(product => {
+        return product.categories && product.categories.some(cat => cat.c_id.toString() === categoryId.toString());
+    });
+}
+
+function applyFilter(categoryId) {
+    currentFilterCategory = categoryId;
+    
+    const filteredProducts = filterProductsByCategory(allProducts, categoryId);
+    renderProductTable(filteredProducts);
+    updateProductCount(filteredProducts.length, allProducts.length);
+    
+    // Update active filter button
+    document.querySelectorAll('.category-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-category-id') === categoryId.toString()) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Close offcanvas on mobile after selection
+    const offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById('sidebar'));
+    if (offcanvas && window.innerWidth < 992) {
+        offcanvas.hide();
+    }
+    
+    // Show filter notification
+    const categoryName = categoryId === 'all' ? 'ทั้งหมด' : 
+        document.querySelector(`[data-category-id="${categoryId}"]`)?.textContent?.trim() || 'ไม่ระบุ';
+    showNotification(`กรองตามหมวดหมู่: ${categoryName} (${filteredProducts.length} รายการ)`, 'info');
+}
+
+function updateProductCount(filteredCount, totalCount) {
+    // Update product count display (if exists)
+    const countElement = document.getElementById('productCount');
+    if (countElement) {
+        countElement.textContent = `แสดง ${filteredCount} จาก ${totalCount} รายการ`;
+    }
+}
+
+// Initialize category filter event listeners
+function initializeCategoryFilters() {
+    document.querySelectorAll('.category-filter-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const categoryId = this.getAttribute('data-category-id');
+            applyFilter(categoryId);
+        });
+    });
+}
+
+// ======= GLOBAL FUNCTIONS (for onclick handlers) =======
+window.openEditModal = openEditModal;
+window.openAddModal = openAddModal;
+window.closeEditModal = closeEditModal;
+window.closeAddModal = closeAddModal;
+window.openDeleteModal = openDeleteModal;
+window.removeProduct = removeProduct;
+window.confirmDeleteProduct = confirmDeleteProduct;
+window.previewImage = previewImage;
+window.showAddCategoryInput = showAddCategoryInput;
+window.cancelAddCategory = cancelAddCategory;
+window.addNewCategory = addNewCategory;
+window.deleteCategoryConfirm = deleteCategoryConfirm;
+window.applyFilter = applyFilter;
 
 // ======= MODAL MANAGEMENT =======
 function setupModals() {
@@ -209,7 +297,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
             showNotification('Product updated successfully', 'success');
             
             // Refresh products display without page reload
-            await fetchProducts();
+            await fetchProducts(currentFilterCategory);
         } else {
             showNotification('Error updating product: ' + result.message, 'error');
         }
@@ -251,33 +339,8 @@ function closeAddModal() {
   window.addModalInstance.hide();
 }
 
-// ======= DATA FETCHING (SIMULATION) =======
-async function fetchProducts() {
-    const tableBody = document.getElementById('productTableBody');
-    // แสดงข้อความกำลังโหลด
-    tableBody.innerHTML = '<tr><td colspan="8" class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>กำลังโหลดข้อมูลสินค้า...</td></tr>';
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/manage-product`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const result = await response.json();
-
-        if (result.success) {
-            renderProductTable(result.data);
-            console.log(`โหลดข้อมูลสินค้าสำเร็จ: ${result.data.length} รายการ`);
-            showNotification(`โหลดข้อมูลสินค้าสำเร็จ: ${result.data.length} รายการ`, 'success');
-        } else {
-            tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger"><i class="fas fa-exclamation-triangle me-2"></i>ไม่สามารถโหลดข้อมูลสินค้า: ' + (result.message || 'เกิดข้อผิดพลาดไม่ทราบสาเหตุ') + '</td></tr>';
-            showNotification(`เกิดข้อผิดพลาดในการโหลดข้อมูล: ${result.message}`, 'error');
-        }
-    } catch (error) {
-        console.error("Error fetching products:", error);
-        tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-danger"><i class="fas fa-plug me-2"></i>ไม่สามารถเชื่อมต่อกับ API Backend ได้</td></tr>';
-        showNotification('เกิดข้อผิดพลาดในการเชื่อมต่อ API', 'error');
-    }
-}
+// ======= DATA FETCHING (Enhanced with Category Filtering) =======
+// The enhanced fetchProducts function is already defined above in the CATEGORY FILTERING FUNCTIONS section
 
 function renderProductTable(products) {
     const tableBody = document.getElementById('productTableBody');
@@ -497,7 +560,7 @@ async function handleAddSubmit(e) {
       resetImagePreview("addImagePreview");
       
       // Refresh products list
-      await fetchProducts();
+      await fetchProducts(currentFilterCategory);
     } else {
       showNotification("Error: " + result.message, "error");
     }
@@ -655,7 +718,7 @@ async function confirmDeleteProduct() {
       showNotification("ลบสินค้าเรียบร้อยแล้ว", "success");
       
       // Refresh products list
-      await fetchProducts();
+      await fetchProducts(currentFilterCategory);
     } else {
       showNotification("Error: " + result.message, "error");
     }
@@ -878,9 +941,11 @@ async function deleteCategoryConfirm(categoryId, categoryName) {
       if (editCategoryElement) editCategoryElement.remove();
       if (addCategoryElement) addCategoryElement.remove();
       
-      // Refresh the page to update product list
-      setTimeout(() => {
-        location.reload();
+      // Refresh the product list to update categories
+      setTimeout(async () => {
+        await fetchProducts(currentFilterCategory);
+        // Re-initialize category filters for any new categories
+        initializeCategoryFilters();
       }, 1500);
     } else {
       showNotification('เกิดข้อผิดพลาด: ' + result.message, 'error');

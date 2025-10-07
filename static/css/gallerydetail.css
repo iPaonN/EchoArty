@@ -256,3 +256,82 @@
 .text-muted.small {
   font-size: 0.85rem;
 }
+
+/* Product Categories Section Styles */
+.product-categories-section {
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9ff, #ffffff);
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e9ecef;
+}
+
+.categories-title {
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 15px;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.categories-title i {
+  color: #007bff;
+}
+
+.categories-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.category-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 15px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border-radius: 25px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.category-tag:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+  color: white;
+  text-decoration: none;
+}
+
+.category-tag.no-category {
+  background: linear-gradient(135deg, #6c757d, #495057);
+  box-shadow: 0 2px 8px rgba(108, 117, 125, 0.3);
+}
+
+.category-tag.no-category:hover {
+  box-shadow: 0 4px 15px rgba(108, 117, 125, 0.4);
+}
+
+.category-tag i {
+  font-size: 0.75rem;
+}
+
+/* Responsive design for categories */
+@media (max-width: 768px) {
+  .product-categories-section {
+    padding: 15px;
+    margin-top: 20px;
+  }
+  
+  .categories-title {
+    font-size: 0.95rem;
+  }
+  
+  .category-tag {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+}

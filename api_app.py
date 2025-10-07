@@ -461,6 +461,50 @@ def delete_category(category_id):
             'message': 'ไม่สามารถลบหมวดหมู่ได้'
         }), 500
 
+@app.route('/api/categories-with-products', methods=['GET'])
+def get_categories_with_products():
+    """API endpoint to get categories with their products for home page"""
+    try:
+        categories = Category.query.all()
+        categories_data = []
+        
+        for category in categories:
+            # Get products for this category
+            products = Product.query.join(product_categories).filter(
+                product_categories.c.c_id == category.c_id
+            ).limit(8).all()  # Limit to 8 products per category for home page
+            
+            if products:  # Only include categories that have products
+                products_data = []
+                for product in products:
+                    products_data.append({
+                        'p_id': product.p_id,
+                        'name': product.name,
+                        'description': product.description,
+                        'price': float(product.price),
+                        'image': product.image or 'placeholder.jpg'
+                    })
+                
+                categories_data.append({
+                    'c_id': category.c_id,
+                    'name': category.name,
+                    'products': products_data
+                })
+        
+        return jsonify({
+            'success': True,
+            'data': categories_data,
+            'count': len(categories_data)
+        }), 200
+        
+    except Exception as e:
+        app.logger.error(f"Error getting categories with products: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to fetch categories with products',
+            'error': str(e)
+        }), 500
+
 @app.route('/api/roles', methods=['GET'])
 def api_get_roles():
     """API endpoint to get all roles"""
