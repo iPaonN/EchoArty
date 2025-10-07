@@ -132,15 +132,28 @@ function updateDimensionsFromSlider(sliderValue) {
 function updateDimensionInfo(width, height, originalSize) {
   const w = parseFloat(width);
   const h = parseFloat(height);
-  const area = (w * h).toFixed(2);
-  const originalArea = (originalSize.width * originalSize.height).toFixed(2);
+  const scale = (w / originalSize.width).toFixed(1);
+  
+  // คำนวณขนาดจริงประมาณการ (สมมติว่า base scale คือ 1:6 = 30cm)
+  // ถ้า original size คือ 1:6 (1 หน่วย = 30cm จริง)
+  const baseHeightCm = 30; // ถ้า 1:6 scale
+  const currentHeightCm = (h * baseHeightCm).toFixed(1);
+  const currentWidthCm = (w * baseHeightCm).toFixed(1);
+  
+  // คำนวณพื้นที่เปรียบเทียบ
+  const area = w * h;
+  const originalArea = originalSize.width * originalSize.height;
   const areaIncrease = ((area / originalArea - 1) * 100).toFixed(0);
   
-  let infoText = `${w} × ${h} = ${area} หน่วย²`;
-  if (areaIncrease > 0) {
-    infoText += ` (+${areaIncrease}% จากเดิม)`;
-  } else if (areaIncrease < 0) {
-    infoText += ` (${areaIncrease}% จากเดิม)`;
+  let infoText = `ความสูงประมาณ ${currentHeightCm} cm, กว้าง ${currentWidthCm} cm`;
+  if (scale != 1.0) {
+    if (areaIncrease > 0) {
+      infoText += ` (ใหญ่ขึ้น ${areaIncrease}%)`;
+    } else if (areaIncrease < 0) {
+      infoText += ` (เล็กลง ${Math.abs(areaIncrease)}%)`;
+    }
+  } else {
+    infoText += ` (ขนาดมาตรฐาน)`;
   }
   
   document.getElementById("dimensionInfo").textContent = infoText;
