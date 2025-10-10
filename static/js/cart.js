@@ -444,9 +444,11 @@ async function submitPayment() {
 
     // Create checkout request
     // Note: API server runs on port 5000, frontend runs on port 8080
-    const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    const host = window.location.hostname;
+    const protocol = window.location.protocol;
+    const apiUrl = (host === 'localhost' || host === '127.0.0.1')
       ? 'http://localhost:5000/api/cart/checkout'
-      : '/api/cart/checkout';
+      : `${protocol}//${host}:5000/api/cart/checkout`;
     
     const response = await fetch(apiUrl, {
       method: 'POST',

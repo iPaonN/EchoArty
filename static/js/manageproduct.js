@@ -4,7 +4,17 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 let currentProductId = null;
-const API_BASE_URL = 'http://localhost:5000/api';
+// Auto-detect API URL based on current host
+const API_BASE_URL = (() => {
+  const host = window.location.hostname;
+  const protocol = window.location.protocol;
+  // If accessing from localhost/127.0.0.1, use localhost
+  // Otherwise, use the same host as the web app
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'http://localhost:5000/api';
+  }
+  return `${protocol}//${host}:5000/api`;
+})();
 const IMAGE_BASE_URL = '/static/images/products/';
 let deletedProducts = []; // For undo functionality
 let searchTimeout = null; // Debounce search

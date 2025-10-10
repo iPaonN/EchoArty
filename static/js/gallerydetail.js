@@ -1,5 +1,15 @@
 // Toy Detail JavaScript Functions
 
+// Auto-detect API URL based on current host
+const API_BASE_URL = (() => {
+  const host = window.location.hostname;
+  const protocol = window.location.protocol;
+  if (host === 'localhost' || host === '127.0.0.1') {
+    return 'http://localhost:5000/api';
+  }
+  return `${protocol}//${host}:5000/api`;
+})();
+
 // ======= PRICE CALCULATION FUNCTION =======
 function calculatePrice(basePrice, x, y, quantity, originalX, originalY) {
     x = parseFloat(x);
@@ -560,7 +570,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 async function loadReviews(productId) {
   try {
-    const response = await fetch(`http://localhost:5000/api/products/${productId}/reviews`);
+    const response = await fetch(`${API_BASE_URL}/products/${productId}/reviews`);
     const data = await response.json();
     
     if (data.success) {
@@ -665,7 +675,7 @@ async function checkCanReview(productId) {
   const userId = userData;
   
   try {
-    const url = `http://localhost:5000/api/products/${productId}/reviews/can-review?user_id=${userId}`;
+    const url = `${API_BASE_URL}/products/${productId}/reviews/can-review?user_id=${userId}`;
     console.log('📡 Fetching:', url);
     
     const response = await fetch(url);
@@ -735,7 +745,7 @@ function setupReviewForm(productId) {
     };
     
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${productId}/reviews`, {
+      const response = await fetch(`${API_BASE_URL}/products/${productId}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
