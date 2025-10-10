@@ -84,13 +84,17 @@
                   </td>
                   <td><strong>฿{{ "%.2f"|format(order['total_amount']) }}</strong></td>
                   <td class="text-center">
-                    {% if order['bill_img'] %}
+                    {% if order['img'] or order['bill_img'] %}
                     <button
                       class="btn btn-outline-purple btn-sm"
-                      data-bill="{{ order['bill_img'] }}"
-                      onclick="viewImages('/static/images/payment/' + this.dataset.bill, '')"
+                      data-custom-img="{{ order['img'] or '' }}"
+                      data-bill-img="{{ order['bill_img'] or '' }}"
+                      onclick="viewImages(this.dataset.customImg, this.dataset.billImg)"
                     >
                       <i class="fas fa-images me-1"></i> ดู
+                      {% if order['img'] and order['bill_img'] %}
+                        (2)
+                      {% endif %}
                     </button>
                     {% else %}
                     <span class="text-muted">-</span>
@@ -145,24 +149,30 @@
         ></button>
       </div>
       <div class="modal-body">
-        <div class="row">
+        <div class="row" id="imageModalContent">
           <div class="col-md-6">
             <div class="image-card">
-              <h6 class="text-center mb-3">ใบเสร็จชำระเงิน</h6>
+              <h6 class="text-center mb-3">
+                <i class="fas fa-receipt me-2"></i>สลิปชำระเงิน
+              </h6>
               <img
                 id="billImage"
-                class="img-fluid rounded"
+                class="img-fluid rounded shadow"
                 alt="Payment Receipt"
+                style="max-height: 500px; object-fit: contain; width: 100%;"
               />
             </div>
           </div>
           <div class="col-md-6">
             <div class="image-card">
-              <h6 class="text-center mb-3">รูปสินค้า</h6>
+              <h6 class="text-center mb-3">
+                <i class="fas fa-image me-2"></i>รูปสินค้าที่ลูกค้าอัปโหลด
+              </h6>
               <img
                 id="productImage"
-                class="img-fluid rounded"
+                class="img-fluid rounded shadow"
                 alt="Product Image"
+                style="max-height: 500px; object-fit: contain; width: 100%;"
               />
             </div>
           </div>
