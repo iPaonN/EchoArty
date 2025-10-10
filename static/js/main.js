@@ -1,6 +1,9 @@
 // EchoArty - Main JavaScript File
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize enhanced navigation
+    initializeNavigation();
+    
     // Initialize tooltips if using Bootstrap
     if (typeof bootstrap !== 'undefined') {
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -89,6 +92,166 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ======= ENHANCED NAVIGATION UX =======
+function initializeNavigation() {
+    const navbar = document.querySelector('.navbar');
+    const navbarCollapse = document.querySelector('.navbar-collapse');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const dropdownMenus = document.querySelectorAll('.dropdown-menu');
+    
+    // 1. Auto-close mobile menu when clicking a link
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            // Close mobile menu
+            if (window.innerWidth < 992 && navbarCollapse.classList.contains('show')) {
+                const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse) || 
+                                  new bootstrap.Collapse(navbarCollapse, { toggle: false });
+                bsCollapse.hide();
+            }
+            
+            // Add loading indicator for page navigation
+            if (!this.getAttribute('href').startsWith('#') && 
+                !this.getAttribute('href').startsWith('javascript:')) {
+                showLoadingIndicator();
+            }
+        });
+    });
+    
+    // 2. Keyboard navigation enhancement
+    navLinks.forEach((link, index) => {
+        link.addEventListener('keydown', function(e) {
+            // Arrow key navigation
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const nextLink = navLinks[index + 1] || navLinks[0];
+                nextLink.focus();
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                const prevLink = navLinks[index - 1] || navLinks[navLinks.length - 1];
+                prevLink.focus();
+            }
+        });
+    });
+    
+    // 3. Dropdown hover enhancement (desktop only)
+    const dropdowns = document.querySelectorAll('.nav-item.dropdown');
+    dropdowns.forEach(dropdown => {
+        let hoverTimeout;
+        
+        dropdown.addEventListener('mouseenter', function() {
+            if (window.innerWidth >= 992) {
+                clearTimeout(hoverTimeout);
+                const dropdownToggle = this.querySelector('.dropdown-toggle');
+                const dropdownMenu = this.querySelector('.dropdown-menu');
+                
+                if (dropdownToggle && dropdownMenu) {
+                    dropdownToggle.classList.add('show');
+                    dropdownMenu.classList.add('show');
+                }
+            }
+        });
+        
+        dropdown.addEventListener('mouseleave', function() {
+            if (window.innerWidth >= 992) {
+                hoverTimeout = setTimeout(() => {
+                    const dropdownToggle = this.querySelector('.dropdown-toggle');
+                    const dropdownMenu = this.querySelector('.dropdown-menu');
+                    
+                    if (dropdownToggle && dropdownMenu) {
+                        dropdownToggle.classList.remove('show');
+                        dropdownMenu.classList.remove('show');
+                    }
+                }, 200);
+            }
+        });
+    });
+    
+    // 4. Navbar hide/show on scroll (for better UX on mobile)
+    let lastScrollTop = 0;
+    let scrollThreshold = 5; // minimum scroll distance
+    
+    window.addEventListener('scroll', function() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        
+        if (Math.abs(scrollTop - lastScrollTop) < scrollThreshold) {
+            return;
+        }
+        
+        if (scrollTop > lastScrollTop && scrollTop > 100) {
+            // Scrolling down & past threshold
+            navbar.style.transform = 'translateY(-100%)';
+            navbar.style.transition = 'transform 0.3s ease-in-out';
+        } else {
+            // Scrolling up
+            navbar.style.transform = 'translateY(0)';
+            navbar.style.transition = 'transform 0.3s ease-in-out';
+        }
+        
+        lastScrollTop = scrollTop;
+    });
+    
+    // 5. Smooth scroll to top when clicking brand/logo
+    const brandLink = document.querySelector('.navbar-brand');
+    if (brandLink) {
+        brandLink.addEventListener('click', function(e) {
+            if (this.getAttribute('href') === window.location.pathname || 
+                this.getAttribute('href') === '/') {
+                e.preventDefault();
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    }
+    
+    // 6. Add visual feedback on active state
+    const currentPath = window.location.pathname;
+    navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (href === currentPath || (currentPath === '/' && href === '/')) {
+            link.classList.add('active');
+            // Add aria-current for accessibility
+            link.setAttribute('aria-current', 'page');
+        }
+    });
+    
+    // 7. Prevent focus trap in collapsed menu
+    if (navbarCollapse) {
+        navbarCollapse.addEventListener('shown.bs.collapse', function() {
+            const firstLink = this.querySelector('.nav-link');
+            if (firstLink) firstLink.focus();
+        });
+    }
+}
+
+// Loading indicator for page transitions
+function showLoadingIndicator() {
+    const indicator = document.createElement('div');
+    indicator.id = 'page-loading-indicator';
+    indicator.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
+    indicator.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    `;
+    
+    document.body.appendChild(indicator);
+    
+    // Remove if page doesn't load within 5 seconds (fallback)
+    setTimeout(() => {
+        if (document.getElementById('page-loading-indicator')) {
+            indicator.remove();
+        }
+    }, 5000);
+}
 
 // Utility function for showing notifications
 function showNotification(message, type = 'info') {
