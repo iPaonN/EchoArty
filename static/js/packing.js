@@ -366,34 +366,76 @@ function showNotification(message, type = "success") {
 }
 
 // ======= IMAGE MODAL FUNCTIONS =======
-function viewImages(billSrc, productSrc) {
+function viewImages(button) {
+  // Get image filenames from data attributes
+  const customImg = button.getAttribute('data-custom-img');
+  const billImg = button.getAttribute('data-bill-img');
+  
+  const customImageCol = document.getElementById("customImageCol");
+  const billImageCol = document.getElementById("billImageCol");
+  const customImage = document.getElementById("customImage");
   const billImage = document.getElementById("billImage");
-  const productImage = document.getElementById("productImage");
 
-  if (!billImage || !productImage) {
+  if (!customImage || !billImage) {
     console.error("Image elements not found");
     return;
   }
 
-  // Set image sources
-  billImage.src = billSrc;
-  productImage.src = productSrc;
+  // Build full paths for images
+  let hasCustom = false;
+  let hasBill = false;
 
-  // Add error handling for images
-  billImage.onerror = function () {
-    this.src = "/static/images/placeholder.jpg";
-    this.alt = "ไม่พบรูปใบเสร็จ";
-  };
+  // Handle custom product image
+  if (customImg && customImg.trim() !== '') {
+    customImage.src = `/static/images/customers/img_customize_products/${customImg}`;
+    customImageCol.style.display = 'block';
+    hasCustom = true;
+    
+    customImage.onerror = function () {
+      this.src = "/static/images/placeholder.jpg";
+      this.alt = "ไม่พบรูปสินค้า";
+    };
+  } else {
+    customImageCol.style.display = 'none';
+  }
 
-  productImage.onerror = function () {
-    this.src = "/static/images/placeholder.jpg";
-    this.alt = "ไม่พบรูปสินค้า";
-  };
+  // Handle bill/slip image
+  if (billImg && billImg.trim() !== '') {
+    billImage.src = `/static/images/customers/slips/${billImg}`;
+    billImageCol.style.display = 'block';
+    hasBill = true;
+    
+    billImage.onerror = function () {
+      this.src = "/static/images/placeholder.jpg";
+      this.alt = "ไม่พบสลิป";
+    };
+  } else {
+    billImageCol.style.display = 'none';
+  }
+
+  // Adjust column width if only one image
+  if (hasCustom && !hasBill) {
+    customImageCol.classList.remove('col-md-6');
+    customImageCol.classList.add('col-md-12');
+  } else if (!hasCustom && hasBill) {
+    billImageCol.classList.remove('col-md-6');
+    billImageCol.classList.add('col-md-12');
+  } else {
+    customImageCol.classList.remove('col-md-12');
+    customImageCol.classList.add('col-md-6');
+    billImageCol.classList.remove('col-md-12');
+    billImageCol.classList.add('col-md-6');
+  }
 
   // Show the modal
   if (window.imageModalInstance) {
     window.imageModalInstance.show();
   }
+}
+
+// Zoom image function
+function zoomImage(src) {
+  window.open(src, '_blank', 'width=800,height=600,resizable=yes,scrollbars=yes');
 }
 
 function closeImageModal() {

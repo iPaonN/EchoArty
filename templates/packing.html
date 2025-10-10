@@ -137,11 +137,22 @@
                 
                 <!-- Images -->
                 <td class="text-center">
-                  {% set bill_url = url_for('static', filename='images/payment/' + (order['bill_img'] or 'dummy.jpg')) %}
-                  {% set product_url = url_for('static', filename='images/products/' + (order['img'] or 'dummy.jpg')) %}
-                  <button class="btn btn-sm btn-outline-info" onclick="viewImages('{{ bill_url }}', '{{ product_url }}')" title="ดูรูปภาพ">
-                    <i class="fas fa-images"></i>
+                  {% set has_custom = order['img'] and order['img'] != '' %}
+                  {% set has_bill = order['bill_img'] and order['bill_img'] != '' %}
+                  {% set img_count = (1 if has_custom else 0) + (1 if has_bill else 0) %}
+                  
+                  {% if img_count > 0 %}
+                  <button class="btn btn-sm btn-outline-info" 
+                          onclick="viewImages(this)"
+                          data-custom-img="{{ order['img'] if has_custom else '' }}"
+                          data-bill-img="{{ order['bill_img'] if has_bill else '' }}"
+                          title="ดูรูปภาพ ({{ img_count }} รูป)">
+                    <i class="fas fa-images me-1"></i>
+                    <span class="badge bg-info">{{ img_count }}</span>
                   </button>
+                  {% else %}
+                  <span class="text-muted"><i class="fas fa-image-slash"></i></span>
+                  {% endif %}
                 </td>
                 
                 <!-- Actions -->
@@ -192,22 +203,39 @@
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title" id="imageModalLabel">
-          <i class="fas fa-images me-2"></i>รูปภาพ
+          <i class="fas fa-images me-2"></i>รูปภาพคำสั่งซื้อ
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="images-grid">
-          <div class="image-card">
-            <h3 class="text-center mb-3">ใบเสร็จชำระเงิน</h3>
-            <div class="image-container">
-              <img id="billImage" class="modal-image img-fluid rounded" alt="Payment Receipt"/>
+        <div class="row g-3">
+          <!-- Custom Product Image -->
+          <div class="col-md-6" id="customImageCol" style="display: none;">
+            <div class="image-card">
+              <h6 class="text-center mb-3">
+                <i class="fas fa-image me-2 text-primary"></i>รูปสินค้าที่ลูกค้าอัปโหลด
+              </h6>
+              <div class="image-container">
+                <img id="customImage" class="modal-image img-fluid rounded shadow-sm" 
+                     alt="Custom Product Image" 
+                     style="cursor: zoom-in; max-height: 400px; object-fit: contain; width: 100%;"
+                     onclick="zoomImage(this.src)"/>
+              </div>
             </div>
           </div>
-          <div class="image-card">
-            <h3 class="text-center mb-3">รูปสินค้า</h3>
-            <div class="image-container">
-              <img id="productImage" class="modal-image img-fluid rounded" alt="Product Image"/>
+          
+          <!-- Bill/Slip Image -->
+          <div class="col-md-6" id="billImageCol" style="display: none;">
+            <div class="image-card">
+              <h6 class="text-center mb-3">
+                <i class="fas fa-receipt me-2 text-success"></i>สลิปการชำระเงิน
+              </h6>
+              <div class="image-container">
+                <img id="billImage" class="modal-image img-fluid rounded shadow-sm" 
+                     alt="Payment Slip" 
+                     style="cursor: zoom-in; max-height: 400px; object-fit: contain; width: 100%;"
+                     onclick="zoomImage(this.src)"/>
+              </div>
             </div>
           </div>
         </div>
