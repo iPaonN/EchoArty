@@ -285,7 +285,7 @@ def login():
                 
                 role_id = session.get('role_id')
                 if role_id in [1, 2]:
-                    return redirect(url_for('manage_products'))
+                    return redirect(url_for('manage_product'))
                 else:
                     return redirect(url_for('home'))
             else:
@@ -296,6 +296,7 @@ def login():
         except requests.exceptions.RequestException as e:
             flash('❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่อีกครั้ง', 'error')
         except Exception as e:
+            print(f"🔴 Login Error: {str(e)}")  # Debug log
             flash('❌ เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง', 'error')
     
     return render_template('login.html')
