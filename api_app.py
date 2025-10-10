@@ -760,29 +760,35 @@ def api_get_products():
 
 @app.route('/api/cart/checkout', methods=['POST'])
 def api_cart_checkout():
-    """API endpoint to checkout cart and create orders"""
+    """API endpoint to checkout cart and create orders with file uploads"""
     try:
-        data = request.get_json()
+        print("=" * 60)
+        print("🛒 Checkout Request Received")
+        print("=" * 60)
         
-        if not data:
+        # Debug: Log request info
+        print(f"📋 Content-Type: {request.content_type}")
+        print(f"📋 Form data keys: {list(request.form.keys())}")
+        print(f"📋 Files: {list(request.files.keys())}")
+        
+        # Get form data instead of JSON
+        u_id = request.form.get('u_id')
+        shipping_address = request.form.get('shipping_address')
+        
+        print(f"👤 User ID: {u_id}")
+        print(f"📮 Shipping Address: {shipping_address}")
+        
+        if not u_id or not shipping_address:
+            print("❌ Missing required fields!")
             return jsonify({
                 'success': False,
-                'message': 'No data provided'
+                'message': 'Missing required fields (u_id or shipping_address)'
             }), 400
         
-        # Validation
-        required_fields = ['u_id', 'cart_items', 'shipping_address']
-        missing_fields = [field for field in required_fields if field not in data]
-        
-        if missing_fields:
-            return jsonify({
-                'success': False,
-                'message': 'Missing required fields',
-                'missing_fields': missing_fields
-            }), 400
+        u_id = int(u_id)
         
         # Verify user exists
-        user = User.query.get(data['u_id'])
+        user = User.query.get(u_id)
         if not user:
             return jsonify({
                 'success': False,
@@ -790,7 +796,7 @@ def api_cart_checkout():
             }), 404
         
         # Get user info for shipping address
-        user_info = UserInfo.query.filter_by(u_id=data['u_id']).first()
+        user_info = UserInfo.query.filter_by(u_id=u_id).first()
         if user_info:
             # Build shipping address from user info
             shipping_address = f"{user_info.street_address}, {user_info.city}"
@@ -798,16 +804,85 @@ def api_cart_checkout():
                 shipping_address += f", {user_info.postal_code}"
         else:
             # Use provided address or default message
-            shipping_address = data.get('shipping_address', 'ไม่ได้ระบุที่อยู่จัดส่ง')
+            shipping_address = request.form.get('shipping_address', 'ไม่ได้ระบุที่อยู่จัดส่ง')
         
-        cart_items = data['cart_items']
-        if not cart_items or len(cart_items) == 0:
+        # Handle slip upload
+        slip_filename = None
+        if 'slip' in request.files:
+            slip_file = request.files['slip']
+            if slip_file and slip_file.filename and allowed_file(slip_file.filename):
+                # Create slips directory if not exists
+                slips_folder = os.path.join('static', 'images', 'customers', 'slips')
+                os.makedirs(slips_folder, exist_ok=True)
+                
+                # Generate unique filename
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                file_ext = slip_file.filename.rsplit('.', 1)[1].lower()
+                slip_filename = f"slip_{u_id}_{timestamp}.{file_ext}"
+                
+                # Save slip file
+                slip_path = os.path.join(slips_folder, slip_filename)
+                slip_file.save(slip_path)
+                print(f"✅ Saved slip: {slip_filename}")
+        
+        # Parse cart items from form data
+        print(f"\n📦 Parsing cart items...")
+        cart_items = []
+        index = 0
+        while True:
+            product_id = request.form.get(f'cart_items[{index}][product_id]')
+            if not product_id:
+                break
+            
+            print(f"  Item {index}: Product ID {product_id}")
+            
+            cart_item = {
+                'product_id': int(product_id),
+                'product_name': request.form.get(f'cart_items[{index}][product_name]', ''),
+                'product_price': float(request.form.get(f'cart_items[{index}][product_price]', 0)),
+                'original_size': request.form.get(f'cart_items[{index}][original_size]', '1:1'),
+                'custom_size': request.form.get(f'cart_items[{index}][custom_size]', '1:1'),
+                'scale_multiplier': request.form.get(f'cart_items[{index}][scale_multiplier]', '1.0'),
+                'quantity': int(request.form.get(f'cart_items[{index}][quantity]', 1)),
+                'unit_price': float(request.form.get(f'cart_items[{index}][unit_price]', 0)),
+                'subtotal': float(request.form.get(f'cart_items[{index}][subtotal]', 0)),
+                'order_details': request.form.get(f'cart_items[{index}][order_details]', ''),
+                'has_custom_image': request.form.get(f'cart_items[{index}][has_custom_image]', 'false') == 'true',
+                'custom_image_filename': request.form.get(f'cart_items[{index}][custom_image_filename]', '')
+            }
+            
+            print(f"    - {cart_item['product_name']}: {cart_item['quantity']} x {cart_item['unit_price']}฿ = {cart_item['subtotal']}฿")
+            print(f"    - Has custom image: {cart_item['has_custom_image']}")
+            
+            # Handle custom image upload
+            if cart_item['has_custom_image']:
+                custom_image_key = f'custom_image_{index}'
+                if custom_image_key in request.files:
+                    custom_image = request.files[custom_image_key]
+                    if custom_image and custom_image.filename:
+                        # Create directory if not exists
+                        custom_folder = os.path.join('static', 'images', 'customers', 'img_customize_products')
+                        os.makedirs(custom_folder, exist_ok=True)
+                        
+                        # Save custom image
+                        custom_image_path = os.path.join(custom_folder, cart_item['custom_image_filename'])
+                        custom_image.save(custom_image_path)
+                        print(f"✅ Saved custom image: {cart_item['custom_image_filename']}")
+            
+            cart_items.append(cart_item)
+            index += 1
+        
+        print(f"\n✅ Parsed {len(cart_items)} cart items")
+        
+        if not cart_items:
+            print("❌ No cart items found!")
             return jsonify({
                 'success': False,
                 'message': 'Cart is empty'
             }), 400
         
         # Create orders for each item in cart
+        print(f"\n🔨 Creating orders...")
         created_orders = []
         
         for item in cart_items:
@@ -818,46 +893,65 @@ def api_cart_checkout():
             
             # Build description with quantity and custom size info
             order_description = item.get('order_details', '')
-            if item.get('quantity'):
-                order_description = f"จำนวน: {item['quantity']} ชิ้น"
-                if item.get('product_size'):
-                    order_description += f" | อัตราส่วน: {item['product_size']}"
-                if item.get('order_details'):
-                    order_description += f" | {item['order_details']}"
+            size_info = f"จำนวน: {item['quantity']} ชิ้น | อัตราส่วน: {item['custom_size']}"
+            if item.get('scale_multiplier') and item['scale_multiplier'] != '1.0':
+                size_info += f" (×{item['scale_multiplier']})"
             
-            # Create new order
+            if order_description:
+                order_description = f"{size_info} | {order_description}"
+            else:
+                order_description = size_info
+            
+            # Get custom image filename if exists
+            custom_img_filename = item['custom_image_filename'] if item['has_custom_image'] else None
+            
+            # Create new order with img and bill_img columns
             new_order = Order(
-                u_id=data['u_id'],
+                u_id=u_id,
                 p_id=item['product_id'],
-                quantity=item.get('quantity', 1),  # บันทึกจำนวนสินค้า
-                total_amount=item['subtotal'],  # บันทึกราคารวม
-                shipping_address=shipping_address,  # Use address from UserInfo
+                quantity=item['quantity'],
+                total_amount=item['subtotal'],
+                shipping_address=shipping_address,
                 status_id=1,  # Default to pending
-                description=order_description
+                description=order_description,
+                img=custom_img_filename,  # รูปสินค้าที่ลูกค้าอัปโหลด
+                bill_img=slip_filename    # รูปสลิป
             )
             
             db.session.add(new_order)
+            print(f"  ✅ Created order for {product.name}")
+            print(f"     - img: {custom_img_filename}")
+            print(f"     - bill_img: {slip_filename}")
+            
             created_orders.append({
                 'product_id': item['product_id'],
                 'product_name': product.name,
                 'quantity': item['quantity'],
-                'total_amount': float(item['subtotal'])
+                'total_amount': float(item['subtotal']),
+                'custom_image': item['custom_image_filename'] if item['has_custom_image'] else None
             })
         
         db.session.commit()
+        print(f"\n🎉 Successfully created {len(created_orders)} orders!")
+        print("=" * 60)
         
         return jsonify({
             'success': True,
             'message': f'Successfully created {len(created_orders)} orders',
             'data': {
                 'orders': created_orders,
-                'total_orders': len(created_orders)
+                'total_orders': len(created_orders),
+                'slip_filename': slip_filename
             }
         }), 201
         
     except Exception as e:
         db.session.rollback()
+        print(f"\n❌ ERROR: {str(e)}")
+        print("=" * 60)
         app.logger.error(f"API Cart checkout error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': 'Failed to checkout',

@@ -280,12 +280,28 @@ document.addEventListener("DOMContentLoaded", function () {
     updateDimensionsFromSlider(e.target.value);
   });
 
-  // File upload handling
+  // File upload handling with localStorage
   document
     .getElementById("fileUpload")
     .addEventListener("change", function (e) {
       const file = e.target.files[0];
       if (file) {
+        // Check file size (25MB max)
+        const maxSize = 25 * 1024 * 1024;
+        if (file.size > maxSize) {
+          alert("ไฟล์ใหญ่เกินไป! กรุณาเลือกไฟล์ขนาดไม่เกิน 25MB");
+          e.target.value = "";
+          return;
+        }
+
+        // Validate file type
+        const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+        if (!allowedTypes.includes(file.type)) {
+          alert("กรุณาเลือกไฟล์ JPG หรือ PNG เท่านั้น");
+          e.target.value = "";
+          return;
+        }
+
         const fileUploadSection = document.querySelector(
           ".file-upload-section"
         );
@@ -300,6 +316,19 @@ document.addEventListener("DOMContentLoaded", function () {
             ขนาด: ${(file.size / 1024 / 1024).toFixed(2)} MB
         </div>
       `;
+
+        // Convert to base64 and store temporarily
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          window.pendingCustomImage = {
+            data: event.target.result,
+            name: file.name,
+            type: file.type,
+            size: file.size
+          };
+          console.log("✅ รูปภาพถูกเก็บชั่วคราว:", file.name);
+        };
+        reader.readAsDataURL(file);
       }
     });
 
@@ -344,8 +373,29 @@ document.addEventListener("DOMContentLoaded", function () {
       order_details: orderDetails,
       unit_price: priceResult.unitPrice,     // ราคาต่อหน่วยที่คำนวณแล้ว
       subtotal: priceResult.totalPrice,      // ราคารวม
-      added_at: new Date().toISOString()     // เวลาที่เพิ่ม
+      added_at: new Date().toISOString(),    // เวลาที่เพิ่ม
+      custom_image: window.pendingCustomImage || null  // ✅ เก็บรูปภาพที่อัปโหลด
     };
+
+    // Clear pending image after adding to cart
+    window.pendingCustomImage = null;
+    
+    // Reset file upload UI
+    const fileUpload = document.getElementById("fileUpload");
+    const fileUploadSection = document.querySelector(".file-upload-section");
+    if (fileUpload) fileUpload.value = "";
+    if (fileUploadSection) {
+      fileUploadSection.innerHTML = `
+        <div class="file-upload-icon">
+          <i class="fas fa-cloud-upload-alt"></i>
+        </div>
+        <div><strong>Choose File</strong> No file chosen</div>
+        <div class="file-info">
+          <i class="fas fa-info-circle me-1"></i>รองรับไฟล์ JPG และ PNG ขนาดไม่เกิน 25MB
+        </div>
+      `;
+      fileUploadSection.classList.remove("has-file");
+    }
 
     // Add to cart (localStorage)
     addToCart(cartItem);

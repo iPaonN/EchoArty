@@ -230,10 +230,23 @@
   border-color: #0056b3;
 }
 
+.file-upload-section.has-file {
+  border-color: #28a745;
+  background: #f0fff4;
+}
+
+.file-upload-section.has-file:hover {
+  background: #e6ffed;
+}
+
 .file-upload-icon {
   font-size: 2rem;
   color: #007bff;
   margin-bottom: 15px;
+}
+
+.file-upload-section.has-file .file-upload-icon {
+  color: #28a745;
 }
 
 .file-info {

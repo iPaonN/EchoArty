@@ -109,6 +109,8 @@ function renderCartItems(cart) {
             data-product-quantity="${item.quantity}"
             data-product-id="${item.product_id}"
             data-product-details="${item.order_details || ''}"
+            data-custom-image="${item.custom_image ? 'true' : 'false'}"
+            data-cart-index="${index}"
             title="ดูรายละเอียด"
           >
             <i class="fas fa-info-circle me-1"></i>รายละเอียด
@@ -380,20 +382,88 @@ async function submitPayment() {
   showNotification("กำลังส่งข้อมูล...", "info");
 
   try {
-    // Create checkout request
-    const response = await fetch('/api/cart/checkout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        u_id: parseInt(userId),
-        cart_items: cart,
-        shipping_address: shippingAddress
-      })
+    // Create FormData to send files
+    const formData = new FormData();
+    formData.append('u_id', parseInt(userId));
+    formData.append('shipping_address', shippingAddress);
+    
+    // Add slip file
+    const slipFile = fileInput.files[0];
+    formData.append('slip', slipFile);
+
+    // Add cart items and their custom images
+    cart.forEach((item, index) => {
+      formData.append(`cart_items[${index}][product_id]`, item.product_id);
+      formData.append(`cart_items[${index}][product_name]`, item.product_name);
+      formData.append(`cart_items[${index}][product_price]`, item.product_price);
+      formData.append(`cart_items[${index}][original_size]`, item.original_size || '1:1');
+      formData.append(`cart_items[${index}][custom_size]`, item.custom_size || '1:1');
+      formData.append(`cart_items[${index}][scale_multiplier]`, item.scale_multiplier || '1.0');
+      formData.append(`cart_items[${index}][quantity]`, item.quantity);
+      formData.append(`cart_items[${index}][unit_price]`, item.unit_price || item.product_price);
+      formData.append(`cart_items[${index}][subtotal]`, item.subtotal || (item.unit_price * item.quantity));
+      formData.append(`cart_items[${index}][order_details]`, item.order_details || '');
+
+      // Add custom image if exists
+      if (item.custom_image && item.custom_image.data) {
+        // Convert base64 to blob
+        const byteString = atob(item.custom_image.data.split(',')[1]);
+        const mimeString = item.custom_image.data.split(',')[0].split(':')[1].split(';')[0];
+        const ab = new ArrayBuffer(byteString.length);
+        const ia = new Uint8Array(ab);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+        const blob = new Blob([ab], { type: mimeString });
+        
+        // Generate unique filename
+        const extension = item.custom_image.name.split('.').pop() || 'jpg';
+        const filename = `custom_${userId}_${Date.now()}_${index}.${extension}`;
+        
+        formData.append(`custom_image_${index}`, blob, filename);
+        formData.append(`cart_items[${index}][has_custom_image]`, 'true');
+        formData.append(`cart_items[${index}][custom_image_filename]`, filename);
+      } else {
+        formData.append(`cart_items[${index}][has_custom_image]`, 'false');
+      }
     });
 
+    // Debug: Log FormData contents
+    console.log('🚀 Sending checkout request...');
+    console.log('📦 Cart items:', cart.length);
+    console.log('💳 User ID:', userId);
+    
+    // Log FormData (for debugging)
+    for (let pair of formData.entries()) {
+      if (pair[1] instanceof Blob) {
+        console.log(`${pair[0]}: [File: ${pair[1].size} bytes]`);
+      } else {
+        console.log(`${pair[0]}: ${pair[1]}`);
+      }
+    }
+
+    // Create checkout request
+    // Note: API server runs on port 5000, frontend runs on port 8080
+    const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:5000/api/cart/checkout'
+      : '/api/cart/checkout';
+    
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      body: formData  // ส่ง FormData แทน JSON (ไม่ต้องใส่ Content-Type header)
+    });
+
+    console.log('📡 Response status:', response.status);
+    
+    // Check if response is OK
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Server error:', errorText);
+      throw new Error(`Server responded with ${response.status}: ${errorText}`);
+    }
+
     const result = await response.json();
+    console.log('✅ Response data:', result);
 
     if (result.success) {
       // Clear cart after successful checkout
@@ -412,18 +482,19 @@ async function submitPayment() {
         if (modal) modal.hide();
         
         // Redirect to orders page or reload
-        window.location.href = '/allorder';
+        window.location.href = '/orders';
       }, 2000);
     } else {
+      console.error('❌ Checkout failed:', result.message);
       showNotification(
         `เกิดข้อผิดพลาด: ${result.message}`,
         "danger"
       );
     }
   } catch (error) {
-    console.error('Checkout error:', error);
+    console.error('❌ Checkout error:', error);
     showNotification(
-      "เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง",
+      `เกิดข้อผิดพลาด: ${error.message || 'กรุณาลองใหม่อีกครั้ง'}`,
       "danger"
     );
   }
@@ -575,6 +646,8 @@ function showDetailModal(button) {
       quantity: parseInt(button.getAttribute("data-product-quantity")) || 1,
       product_id: button.getAttribute("data-product-id") || "",
       details: button.getAttribute("data-product-details") || "",
+      hasCustomImage: button.getAttribute("data-custom-image") === "true",
+      cartIndex: parseInt(button.getAttribute("data-cart-index")) || 0,
     };
 
     // Debug logging
@@ -594,12 +667,27 @@ function showDetailModal(button) {
       modalProductName.textContent = productData.name;
     }
 
-    // Set product image
+    // Set product image (use custom image if available)
     const modalProductImage = modal.querySelector("#modalProductImage");
     if (modalProductImage) {
-      const imagePath = `/static/images/products/${productData.image}`;
-      modalProductImage.src = imagePath;
-      modalProductImage.alt = productData.name;
+      if (productData.hasCustomImage) {
+        // Get custom image from localStorage
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const cartItem = cart[productData.cartIndex];
+        if (cartItem && cartItem.custom_image && cartItem.custom_image.data) {
+          modalProductImage.src = cartItem.custom_image.data;
+          modalProductImage.alt = productData.name + " (รูปที่อัปโหลด)";
+          console.log("✅ แสดงรูปที่ลูกค้าอัปโหลด");
+        } else {
+          const imagePath = `/static/images/products/${productData.image}`;
+          modalProductImage.src = imagePath;
+          modalProductImage.alt = productData.name;
+        }
+      } else {
+        const imagePath = `/static/images/products/${productData.image}`;
+        modalProductImage.src = imagePath;
+        modalProductImage.alt = productData.name;
+      }
     }
 
     // Set base price
