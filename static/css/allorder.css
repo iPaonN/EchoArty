@@ -1,4 +1,109 @@
 /* Custom styles for AllOrder page */
+
+/* ======= PAGE HEADER ======= */
+.page-header-section {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.page-subtitle {
+  font-size: 1.1rem;
+  margin-bottom: 0;
+}
+
+/* ======= SEARCH AND FILTER SECTION ======= */
+.search-filter-section {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  color: #6c757d;
+  z-index: 1;
+}
+
+.search-input {
+  padding-left: 45px;
+  padding-right: 45px;
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.search-input:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.25);
+}
+
+.clear-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.clear-btn:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.form-select {
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+  transition: all 0.3s ease;
+}
+
+.form-select:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.25);
+}
+
+/* ======= ORDERS CARD ======= */
+.orders-card {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: none;
+}
+
+/* ======= EMPTY STATE ======= */
+.empty-state {
+  padding: 3rem 1rem;
+}
+
+.empty-state i {
+  color: #cbd5e0;
+}
+
+.empty-state h4 {
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+/* ======= BUTTON STYLES ======= */
 .btn-outline-purple {
   color: #9c27b0;
   border-color: #9c27b0;
@@ -11,9 +116,27 @@
   color: white;
 }
 
+.image-btn {
+  transition: all 0.2s ease;
+}
+
+.image-btn:hover {
+  transform: scale(1.05);
+}
+
+.detail-btn {
+  transition: all 0.2s ease;
+}
+
+.detail-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+}
+
 .table-responsive {
   border-radius: 0.5rem;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .table th {
@@ -25,6 +148,7 @@
   letter-spacing: 0.5px;
   border: none;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .table td {
@@ -33,11 +157,45 @@
   border-color: #eee;
 }
 
-.table tbody tr:hover {
-  background-color: #fff8e1;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+.table tbody tr.order-row {
   transition: all 0.2s ease;
+}
+
+.table tbody tr.order-row:hover {
+  background-color: #f8f9fa;
+  transform: translateX(5px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+}
+
+/* Text truncate for description */
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 1.8rem;
+  }
+  
+  .page-subtitle {
+    font-size: 0.95rem;
+  }
+  
+  .search-filter-section {
+    padding: 1rem;
+  }
+  
+  .table {
+    font-size: 0.875rem;
+  }
+  
+  .table td, .table th {
+    padding: 8px;
+  }
 }
 
 .item-detail {

@@ -8,9 +8,13 @@
 <div class="container my-5">
   <div class="row">
     <div class="col-12">
-      <h1 class="text-center mb-4">
-        <i class="fas fa-shopping-cart me-2"></i>รายการสั่งซื้อ
-      </h1>
+      <!-- Page Header -->
+      <div class="page-header-section mb-4">
+        <h1 class="page-title">
+          <i class="fas fa-shopping-cart me-2"></i>รายการสั่งซื้อของฉัน
+        </h1>
+        <p class="page-subtitle text-muted">ติดตามสถานะคำสั่งซื้อและรายละเอียดของคุณ</p>
+      </div>
 
       {% if message %}
       <div class="card">
@@ -32,38 +36,96 @@
         </div>
       </div>
       {% else %}
-      <div class="card">
+      
+      <!-- Search and Filter Bar -->
+      <div class="search-filter-section mb-4">
+        <div class="row g-3">
+          <!-- Search Box -->
+          <div class="col-md-6">
+            <div class="search-box">
+              <i class="fas fa-search search-icon"></i>
+              <input 
+                type="text" 
+                id="orderSearch" 
+                class="form-control search-input" 
+                placeholder="ค้นหาด้วยรหัส, ชื่อสินค้า, หรือรายละเอียด..."
+                aria-label="Search orders"
+              />
+              <button class="clear-btn" id="clearSearchBtn" style="display: none;">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+          
+          <!-- Status Filter -->
+          <div class="col-md-4">
+            <select id="statusFilter" class="form-select" aria-label="Filter by status">
+              <option value="all">🔍 สถานะทั้งหมด</option>
+              <option value="1">⏳ Pending</option>
+              <option value="2">⚙️ Processing</option>
+              <option value="3">📦 Packing</option>
+              <option value="4">🚚 Delivery</option>
+              <option value="5">✅ Complete</option>
+              <option value="6">❌ Cancelled</option>
+            </select>
+          </div>
+          
+          <!-- Sort Options -->
+          <div class="col-md-2">
+            <select id="sortOrder" class="form-select" aria-label="Sort orders">
+              <option value="newest">ใหม่สุด</option>
+              <option value="oldest">เก่าสุด</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Results Counter -->
+        <div class="mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span id="orderCount" class="text-muted">
+            {% if orders %}
+            <i class="fas fa-box me-1"></i> แสดง {{ orders|length }} คำสั่งซื้อ
+            {% endif %}
+          </span>
+          <span id="searchResultCount" class="badge bg-info" style="display: none;"></span>
+        </div>
+      </div>
+
+      <div class="card orders-card">
         <div class="card-body">
           <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="ordersTable">
               <thead class="table-primary">
                 <tr>
-                  <th><i class="fas fa-hashtag me-1"></i> รหัสสั่งซื้อ</th>
+                  <th><i class="fas fa-hashtag me-1"></i> รหัส</th>
                   <th><i class="fas fa-box me-1"></i> สินค้า</th>
-                  <th><i class="fas fa-info-circle me-1"></i> รายละเอียด</th>
+                  <th class="d-none d-md-table-cell"><i class="fas fa-info-circle me-1"></i> รายละเอียด</th>
                   <th><i class="far fa-calendar-alt me-1"></i> วันที่</th>
                   <th><i class="fas fa-flag me-1"></i> สถานะ</th>
-                  <th><i class="fas fa-money-bill-wave me-1"></i> ราคารวม</th>
+                  <th><i class="fas fa-money-bill-wave me-1"></i> ราคา</th>
                   <th class="text-center">
                     <i class="fas fa-image me-1"></i> รูปภาพ
                   </th>
-                  <th class="text-center">
-                    <i class="fas fa-cog me-1"></i> การจัดการ
-                  </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="orderTableBody">
                 {% if orders %} {% for order in orders %}
-                <tr>
-                  <td><strong>{{ order['order_id'] }}</strong></td>
-                  <td>
-                    {{ order['product_name'] or 'ไม่ระบุ' }}
+                <tr class="order-row" 
+                    data-order-id="{{ order['order_id'] }}"
+                    data-status="{{ order['status_id'] }}"
+                    data-date="{{ order['order_date'] }}">
+                  <td><strong class="text-primary">#{{ order['order_id'] }}</strong></td>
+                  <td class="product-name">
+                    <strong>{{ order['product_name'] or 'ไม่ระบุ' }}</strong>
                   </td>
-                  <td>
-                    {{ order['description'] or 'ไม่มีรายละเอียด' }}
+                  <td class="order-description d-none d-md-table-cell">
+                    <span class="text-truncate d-inline-block" style="max-width: 200px;" title="{{ order['description'] or 'ไม่มีรายละเอียด' }}">
+                      {{ order['description'] or 'ไม่มีรายละเอียด' }}
+                    </span>
                   </td>
-                  <td>{{ order['order_date'] }}</td>
-                  <td>
+                  <td class="order-date">
+                    <small>{{ order['order_date'] }}</small>
+                  </td>
+                  <td class="order-status">
                     {% set status_class = 'primary' %} 
                     {% if order['status_id'] == 1 %} 
                       {% set status_class = 'secondary' %}
@@ -82,38 +144,43 @@
                       {{ status_labels[order['status_id']] if status_labels else 'Unknown' }}
                     </span>
                   </td>
-                  <td><strong>฿{{ "%.2f"|format(order['total_amount']) }}</strong></td>
+                  <td class="order-price">
+                    <strong class="text-success">฿{{ "%.2f"|format(order['total_amount']) }}</strong>
+                  </td>
                   <td class="text-center">
                     {% if order['img'] or order['bill_img'] %}
                     <button
-                      class="btn btn-outline-purple btn-sm"
+                      class="btn btn-outline-info btn-sm image-btn"
                       data-custom-img="{{ order['img'] or '' }}"
                       data-bill-img="{{ order['bill_img'] or '' }}"
                       onclick="viewImages(this.dataset.customImg, this.dataset.billImg)"
+                      title="คลิกเพื่อดูรูปภาพ"
                     >
-                      <i class="fas fa-images me-1"></i> ดู
+                      <i class="fas fa-images me-1"></i>ดูรูป
                       {% if order['img'] and order['bill_img'] %}
-                        (2)
+                        <span class="badge bg-info ms-1">2</span>
+                      {% else %}
+                        <span class="badge bg-info ms-1">1</span>
                       {% endif %}
                     </button>
                     {% else %}
-                    <span class="text-muted">-</span>
+                    <span class="text-muted">
+                      <i class="fas fa-image-slash"></i> ไม่มีรูป
+                    </span>
                     {% endif %}
-                  </td>
-                  <td class="text-center">
-                    <a
-                      class="btn btn-primary btn-sm"
-                      href="{{ url_for('tracking') }}?order_id={{ order['order_id'] }}"
-                    >
-                      <i class="fas fa-search me-1"></i>รายละเอียด
-                    </a>
                   </td>
                 </tr>
                 {% endfor %} {% else %}
-                <tr>
-                  <td colspan="8" class="text-center text-muted py-4">
-                    <i class="fas fa-shopping-cart fa-2x mb-3 d-block"></i>
-                    คุณยังไม่มีคำสั่งซื้อ
+                <tr class="no-orders-row">
+                  <td colspan="7" class="text-center py-5">
+                    <div class="empty-state">
+                      <i class="fas fa-shopping-cart fa-4x text-muted mb-3 d-block"></i>
+                      <h4 class="text-muted">คุณยังไม่มีคำสั่งซื้อ</h4>
+                      <p class="text-muted mb-4">เริ่มช็อปปิ้งและสั่งซื้อสินค้าของเราได้เลย!</p>
+                      <a href="{{ url_for('gallery') }}" class="btn btn-primary">
+                        <i class="fas fa-shopping-bag me-2"></i>เริ่มช็อปปิ้ง
+                      </a>
+                    </div>
                   </td>
                 </tr>
                 {% endif %}

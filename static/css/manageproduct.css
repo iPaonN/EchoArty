@@ -1,5 +1,143 @@
 /* Custom styles for Manage Product page - Enhanced Bootstrap Integration */
 
+/* ======= ENHANCED SEARCH AND FILTER BAR ======= */
+.search-filter-bar {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.search-box-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  color: #6c757d;
+  z-index: 1;
+}
+
+.search-input {
+  padding-left: 45px;
+  padding-right: 45px;
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.25);
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.clear-search-btn:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+/* ======= BULK ACTIONS BAR ======= */
+.bulk-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  background: #e3f2fd;
+  border-radius: 8px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ======= KEYBOARD HINTS ======= */
+.keyboard-hints {
+  text-align: right;
+}
+
+.keyboard-hints kbd {
+  background: #495057;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ======= SEARCH HIGHLIGHT ======= */
+.search-match {
+  background: #fff3cd !important;
+  transition: background 0.3s ease;
+}
+
+/* ======= DRAG AND DROP ======= */
+.drag-over {
+  border: 3px dashed #2196f3 !important;
+  background: rgba(33, 150, 243, 0.05) !important;
+  transform: scale(1.02);
+  transition: all 0.3s ease;
+}
+
+/* ======= TABLE ENHANCEMENTS ======= */
+.table .form-check-input {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.table .form-check-input:checked {
+  background-color: #2196f3;
+  border-color: #2196f3;
+}
+
+.table .form-check-input:indeterminate {
+  background-color: #ffc107;
+  border-color: #ffc107;
+}
+
+.product-row {
+  transition: all 0.2s ease;
+}
+
+.product-row:hover {
+  background-color: #f8f9fa !important;
+  transform: scale(1.01);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.product-image {
+  transition: transform 0.3s ease;
+}
+
+.product-image:hover {
+  transform: scale(2);
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
 /* ======= MAIN STYLES ======= */
 .product-container {
   background: rgba(255, 255, 255, 0.95);

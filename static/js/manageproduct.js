@@ -6,13 +6,319 @@ document.addEventListener("DOMContentLoaded", function () {
 let currentProductId = null;
 const API_BASE_URL = 'http://localhost:5000/api';
 const IMAGE_BASE_URL = '/static/images/products/';
+let deletedProducts = []; // For undo functionality
+let searchTimeout = null; // Debounce search
 
 function initializeManageProduct() {
   setupModals();
   setupFormHandlers();
   setupImagePreviews();
   initializeCategoryFilters();
+  setupEnhancedSearch();
+  setupKeyboardShortcuts();
+  setupBulkActions();
+  setupDragAndDrop();
   fetchProducts(); 
+}
+
+// ======= ENHANCED SEARCH FUNCTIONALITY =======
+function setupEnhancedSearch() {
+  const searchInput = document.getElementById('productSearch');
+  const clearBtn = document.getElementById('clearSearchBtn');
+  
+  if (searchInput) {
+    // Real-time search with debounce
+    searchInput.addEventListener('input', function() {
+      const query = this.value.trim();
+      
+      // Show/hide clear button
+      if (clearBtn) {
+        clearBtn.style.display = query ? 'block' : 'none';
+      }
+      
+      // Debounce search
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        performSearch(query);
+      }, 300);
+    });
+    
+    // Clear search
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        searchInput.focus();
+        clearBtn.style.display = 'none';
+        performSearch('');
+      });
+    }
+  }
+}
+
+function performSearch(query) {
+  const rows = document.querySelectorAll('#productTableBody tr.product-row');
+  const searchResultCount = document.getElementById('searchResultCount');
+  let visibleCount = 0;
+  
+  const lowerQuery = query.toLowerCase();
+  
+  rows.forEach(row => {
+    const name = row.querySelector('.product-name')?.textContent.toLowerCase() || '';
+    const description = row.querySelector('.product-description')?.textContent.toLowerCase() || '';
+    const price = row.querySelector('.product-price')?.textContent.toLowerCase() || '';
+    const cells = row.querySelectorAll('td');
+    const id = cells[1]?.textContent.toLowerCase() || '';
+    
+    const matches = !query || 
+                    name.includes(lowerQuery) || 
+                    description.includes(lowerQuery) ||
+                    price.includes(lowerQuery) ||
+                    id.includes(lowerQuery);
+    
+    if (matches) {
+      row.style.display = '';
+      visibleCount++;
+      
+      // Highlight matching text
+      if (query) {
+        row.classList.add('search-match');
+      } else {
+        row.classList.remove('search-match');
+      }
+    } else {
+      row.style.display = 'none';
+    }
+  });
+  
+  // Update search result count
+  if (searchResultCount) {
+    if (query && visibleCount < rows.length) {
+      searchResultCount.textContent = `พบ ${visibleCount} รายการ`;
+      searchResultCount.style.display = 'inline-block';
+    } else {
+      searchResultCount.style.display = 'none';
+    }
+  }
+  
+  // Show "no results" message if needed
+  showNoResultsMessage(visibleCount === 0 && query !== '');
+}
+
+function showNoResultsMessage(show) {
+  const tableBody = document.getElementById('productTableBody');
+  let noResultsRow = document.getElementById('noSearchResults');
+  
+  if (show && !noResultsRow) {
+    noResultsRow = document.createElement('tr');
+    noResultsRow.id = 'noSearchResults';
+    noResultsRow.innerHTML = `
+      <td colspan="9" class="text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3 d-block"></i>
+        <h5 class="text-muted">ไม่พบสินค้าที่ค้นหา</h5>
+        <p class="text-muted">ลองเปลี่ยนคำค้นหาหรือกรองด้วยหมวดหมู่</p>
+      </td>
+    `;
+    tableBody.appendChild(noResultsRow);
+  } else if (!show && noResultsRow) {
+    noResultsRow.remove();
+  }
+}
+
+// ======= KEYBOARD SHORTCUTS =======
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', function(e) {
+    // Ignore if typing in textarea or contenteditable
+    if (e.target.tagName === 'TEXTAREA' || 
+        e.target.contentEditable === 'true' ||
+        (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.id !== 'productSearch')) {
+      return;
+    }
+    
+    // Ctrl+N: Add new product
+    if (e.ctrlKey && e.key === 'n') {
+      e.preventDefault();
+      openAddModal();
+    }
+    
+    // Ctrl+F: Focus search
+    if (e.ctrlKey && e.key === 'f') {
+      e.preventDefault();
+      const searchInput = document.getElementById('productSearch');
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.select();
+      }
+    }
+    
+    // Escape: Close modals or clear search
+    if (e.key === 'Escape') {
+      const searchInput = document.getElementById('productSearch');
+      if (searchInput && searchInput === document.activeElement && searchInput.value) {
+        searchInput.value = '';
+        document.getElementById('clearSearchBtn').style.display = 'none';
+        performSearch('');
+      } else {
+        closeAllModals();
+      }
+    }
+  });
+}
+
+function closeAllModals() {
+  if (window.editModalInstance) {
+    window.editModalInstance.hide();
+  }
+  if (window.addModalInstance) {
+    window.addModalInstance.hide();
+  }
+  if (window.deleteModalInstance) {
+    window.deleteModalInstance.hide();
+  }
+}
+
+// ======= BULK ACTIONS =======
+function setupBulkActions() {
+  // This will be called when checkboxes are toggled
+}
+
+window.toggleSelectAll = function(checkbox) {
+  const checkboxes = document.querySelectorAll('.product-checkbox');
+  checkboxes.forEach(cb => {
+    if (cb.closest('tr').style.display !== 'none') {
+      cb.checked = checkbox.checked;
+    }
+  });
+  updateBulkActions();
+};
+
+window.updateBulkActions = function() {
+  const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+  const bulkActionsBar = document.getElementById('bulkActionsBar');
+  const selectedCount = document.getElementById('selectedCount');
+  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+  
+  if (selectedCheckboxes.length > 0) {
+    bulkActionsBar.style.display = 'flex';
+    selectedCount.textContent = `เลือก ${selectedCheckboxes.length} รายการ`;
+  } else {
+    bulkActionsBar.style.display = 'none';
+  }
+  
+  // Update select all checkbox state
+  const totalVisibleCheckboxes = Array.from(document.querySelectorAll('.product-checkbox')).filter(
+    cb => cb.closest('tr').style.display !== 'none'
+  ).length;
+  
+  if (selectAllCheckbox) {
+    selectAllCheckbox.checked = selectedCheckboxes.length === totalVisibleCheckboxes && totalVisibleCheckboxes > 0;
+    selectAllCheckbox.indeterminate = selectedCheckboxes.length > 0 && selectedCheckboxes.length < totalVisibleCheckboxes;
+  }
+};
+
+window.bulkDelete = async function() {
+  const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+  const productIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.productId);
+  
+  if (productIds.length === 0) return;
+  
+  const confirmed = confirm(`คุณต้องการลบสินค้า ${productIds.length} รายการที่เลือกหรือไม่?`);
+  if (!confirmed) return;
+  
+  showNotification(`กำลังลบสินค้า ${productIds.length} รายการ...`, 'info');
+  
+  let successCount = 0;
+  let failCount = 0;
+  
+  for (const productId of productIds) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/manage-product/${productId}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    } catch (error) {
+      console.error(`Error deleting product ${productId}:`, error);
+      failCount++;
+    }
+  }
+  
+  // Refresh product list
+  await fetchProducts(currentFilterCategory === 'all' ? null : currentFilterCategory);
+  
+  // Show result
+  if (successCount > 0) {
+    showNotification(`ลบสินค้าสำเร็จ ${successCount} รายการ`, 'success');
+  }
+  if (failCount > 0) {
+    showNotification(`ลบสินค้าล้มเหลว ${failCount} รายการ`, 'error');
+  }
+  
+  clearSelection();
+};
+
+window.clearSelection = function() {
+  document.querySelectorAll('.product-checkbox').forEach(cb => cb.checked = false);
+  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+  if (selectAllCheckbox) {
+    selectAllCheckbox.checked = false;
+    selectAllCheckbox.indeterminate = false;
+  }
+  updateBulkActions();
+};
+
+// ======= DRAG AND DROP IMAGE UPLOAD =======
+function setupDragAndDrop() {
+  const dropZones = ['editImageInput', 'addImageInput'];
+  
+  dropZones.forEach(inputId => {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    
+    const wrapper = input.closest('.mb-3') || input.parentElement;
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      wrapper.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+      wrapper.addEventListener(eventName, () => {
+        wrapper.classList.add('drag-over');
+      }, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+      wrapper.addEventListener(eventName, () => {
+        wrapper.classList.remove('drag-over');
+      }, false);
+    });
+    
+    wrapper.addEventListener('drop', function(e) {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      
+      if (files.length > 0 && files[0].type.startsWith('image/')) {
+        input.files = files;
+        
+        // Trigger preview
+        const previewId = inputId.replace('Input', 'Preview');
+        previewImage(input, previewId);
+        
+        showNotification('อัปโหลดรูปภาพสำเร็จ', 'success');
+      } else {
+        showNotification('กรุณาอัปโหลดไฟล์รูปภาพเท่านั้น', 'error');
+      }
+    }, false);
+  });
 }
 
 // ======= NOTIFICATION SYSTEM =======
@@ -347,16 +653,18 @@ function renderProductTable(products) {
     tableBody.innerHTML = ''; // ล้างข้อความโหลด/ข้อมูลเก่า
 
     if (products.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">ไม่พบสินค้าในระบบ</td></tr>';
+        tableBody.innerHTML = '<tr class="no-products-row"><td colspan="9" class="text-center py-5"><i class="fas fa-inbox fa-3x text-muted mb-3 d-block"></i><h5 class="text-muted">ไม่พบสินค้าในระบบ</h5></td></tr>';
         return;
     }
 
     products.forEach(product => {
         // 1. จัดรูปแบบหมวดหมู่
         // (สมมติว่า product.categories เป็น array of {c_id, name})
-        const categoriesHtml = product.categories.map(cat => 
-            `<span class="badge bg-secondary me-1">${cat.name}</span>`
-        ).join('');
+        const categoriesHtml = product.categories && product.categories.length > 0
+            ? product.categories.map(cat => 
+                `<span class="badge bg-secondary me-1">${cat.name}</span>`
+              ).join('')
+            : '<span class="text-muted small">ไม่มีหมวดหมู่</span>';
         
         // 2. จำกัดความยาวรายละเอียด
         const shortDescription = product.description && product.description.length > 50 
@@ -364,34 +672,81 @@ function renderProductTable(products) {
             : product.description || '-';
 
         const row = document.createElement('tr');
+        row.className = 'product-row';
+        row.setAttribute('data-product-id', product.p_id);
+        
         row.innerHTML = `
-            <td>${product.p_id}</td>
-            <td><strong>${product.name}</strong></td>
-            <td class="text-start small">${shortDescription}</td>
-            <td>฿${product.price.toFixed(2)}</td>
-            <td>${product.size || '-'}</td>
+            <td style="text-align: center">
+              <input 
+                type="checkbox" 
+                class="form-check-input product-checkbox" 
+                data-product-id="${product.p_id}"
+                onchange="updateBulkActions()"
+              />
+            </td>
+            <td style="text-align: center">${product.p_id}</td>
+            <td class="product-name"><strong>${product.name}</strong></td>
+            <td class="product-description text-start small">${shortDescription}</td>
+            <td class="product-price">฿${product.price.toFixed(2)}</td>
+            <td class="product-size">${product.size || '1:1'}</td>
             
             <td>
               <img
                 src="${IMAGE_BASE_URL}${product.image}"
-                alt="Product ID: {{ item.id }}"
-                class="product-image"
+                alt="${product.name}"
+                class="product-image img-thumbnail"
                 width="50"
+                style="cursor: pointer;"
+                onclick="previewProductImage('${IMAGE_BASE_URL}${product.image}', '${product.name}')"
               />
             </td>
-            <td>${categoriesHtml}</td>
-            <td>
-                <button class="btn btn-sm btn-warning me-2 edit-btn" data-id="${product.p_id}" onclick="openEditModal(${product.p_id})">
-                    <i class="fas fa-edit"></i> แก้ไข
-                </button>
-                <button class="btn btn-sm btn-danger delete-btn" data-id="${product.p_id}" onclick="openDeleteModal(${product.p_id}, '${product.name}', '${product.image}')">
-                    <i class="fas fa-trash-alt"></i> ลบ
-                </button>
+            <td class="product-categories">${categoriesHtml}</td>
+            <td style="text-align: center">
+                <div class="btn-group" role="group">
+                  <button class="btn btn-sm btn-warning edit-btn" 
+                          data-id="${product.p_id}" 
+                          onclick="openEditModal(${product.p_id})"
+                          title="แก้ไขสินค้า">
+                      <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger delete-btn" 
+                          data-id="${product.p_id}" 
+                          onclick="openDeleteModal(${product.p_id}, '${product.name.replace(/'/g, "\\'")}', '${product.image}')"
+                          title="ลบสินค้า">
+                      <i class="fas fa-trash-alt"></i>
+                  </button>
+                </div>
             </td>
         `;
         tableBody.appendChild(row);
     });
+    
+    // Reset selection
+    clearSelection();
 }
+
+// Quick image preview
+window.previewProductImage = function(src, name) {
+  const modal = document.createElement('div');
+  modal.className = 'modal fade';
+  modal.innerHTML = `
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">${name}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img src="${src}" alt="${name}" class="img-fluid" />
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  const bsModal = new bootstrap.Modal(modal);
+  bsModal.show();
+  modal.addEventListener('hidden.bs.modal', () => modal.remove());
+};
 
 function populateEditForm(product) {
   document.getElementById("editProductName").value = product.name;

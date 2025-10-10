@@ -65,6 +65,7 @@
         <!-- Navigation Links -->
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav me-auto" role="menubar">
+            <!-- Public Pages -->
             <li class="nav-item" role="none">
               <a
                 class="nav-link {% if request.endpoint == 'home' %}active{% endif %}"
@@ -87,30 +88,8 @@
                 <i class="fas fa-images me-1" aria-hidden="true"></i>Toy
               </a>
             </li>
-            <li class="nav-item" role="none">
-              <a
-                class="nav-link {% if request.endpoint == 'about' %}active{% endif %}"
-                href="{{ url_for('about') if url_for else '/about' }}"
-                role="menuitem"
-                {% if request.endpoint == 'about' %}aria-current="page"{% endif %}
-                title="About EchoArty"
-              >
-                <i class="fas fa-info-circle me-1" aria-hidden="true"></i>About
-              </a>
-            </li>
-            <li class="nav-item" role="none">
-              <a
-                class="nav-link {% if request.endpoint == 'contact' %}active{% endif %}"
-                href="{{ url_for('contact') if url_for else '/contact' }}"
-                role="menuitem"
-                {% if request.endpoint == 'contact' %}aria-current="page"{% endif %}
-                title="Contact us"
-              >
-                <i class="fas fa-envelope me-1" aria-hidden="true"></i>Contact
-              </a>
-            </li>
             
-            <!-- Customer Menu Items (Only when logged in) -->
+            <!-- Customer Menu (Only when logged in) -->
             {% if user_perms.logged_in %}
             <li class="nav-item" role="none">
               <a
@@ -136,7 +115,7 @@
             </li>
             {% endif %}
             
-            <!-- Staff Menu Items (Only for Staff and God) -->
+            <!-- Staff Menu (Only for Staff and God) -->
             {% if user_perms.can_manage_products %}
             <li class="nav-item" role="none">
               <a
@@ -201,6 +180,30 @@
               </ul>
             </li>
             {% endif %}
+            
+            <!-- Info Pages (Always visible - at the end) -->
+            <li class="nav-item" role="none">
+              <a
+                class="nav-link {% if request.endpoint == 'about' %}active{% endif %}"
+                href="{{ url_for('about') if url_for else '/about' }}"
+                role="menuitem"
+                {% if request.endpoint == 'about' %}aria-current="page"{% endif %}
+                title="About EchoArty"
+              >
+                <i class="fas fa-info-circle me-1" aria-hidden="true"></i>About
+              </a>
+            </li>
+            <li class="nav-item" role="none">
+              <a
+                class="nav-link {% if request.endpoint == 'contact' %}active{% endif %}"
+                href="{{ url_for('contact') if url_for else '/contact' }}"
+                role="menuitem"
+                {% if request.endpoint == 'contact' %}aria-current="page"{% endif %}
+                title="Contact us"
+              >
+                <i class="fas fa-envelope me-1" aria-hidden="true"></i>Contact
+              </a>
+            </li>
           </ul>
 
           <!-- Right side navigation -->

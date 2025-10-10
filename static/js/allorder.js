@@ -1,5 +1,178 @@
 // AllOrder page JavaScript functionality
 
+// Initialize on page load
+document.addEventListener("DOMContentLoaded", function() {
+  setupSearch();
+  setupFilters();
+  setupSort();
+  initializeOrderCount();
+});
+
+let searchTimeout = null;
+
+// ======= SEARCH FUNCTIONALITY =======
+function setupSearch() {
+  const searchInput = document.getElementById('orderSearch');
+  const clearBtn = document.getElementById('clearSearchBtn');
+  
+  if (!searchInput) return;
+  
+  searchInput.addEventListener('input', function() {
+    const query = this.value.trim();
+    
+    // Show/hide clear button
+    if (clearBtn) {
+      clearBtn.style.display = query ? 'block' : 'none';
+    }
+    
+    // Debounce search
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      performSearch(query);
+    }, 300);
+  });
+  
+  // Clear search
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      searchInput.value = '';
+      searchInput.focus();
+      clearBtn.style.display = 'none';
+      performSearch('');
+    });
+  }
+}
+
+function performSearch(query) {
+  const rows = document.querySelectorAll('#orderTableBody .order-row');
+  const searchResultCount = document.getElementById('searchResultCount');
+  let visibleCount = 0;
+  
+  const lowerQuery = query.toLowerCase();
+  
+  rows.forEach(row => {
+    const orderId = row.querySelector('td:first-child')?.textContent.toLowerCase() || '';
+    const productName = row.querySelector('.product-name')?.textContent.toLowerCase() || '';
+    const description = row.querySelector('.order-description')?.textContent.toLowerCase() || '';
+    
+    const matches = !query || 
+                    orderId.includes(lowerQuery) || 
+                    productName.includes(lowerQuery) ||
+                    description.includes(lowerQuery);
+    
+    if (matches) {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      row.style.display = 'none';
+    }
+  });
+  
+  // Update search result count
+  if (searchResultCount) {
+    if (query && visibleCount < rows.length) {
+      searchResultCount.textContent = `พบ ${visibleCount} รายการ`;
+      searchResultCount.style.display = 'inline-block';
+    } else {
+      searchResultCount.style.display = 'none';
+    }
+  }
+  
+  updateOrderCount();
+  showNoResultsMessage(visibleCount === 0 && query !== '');
+}
+
+function showNoResultsMessage(show) {
+  const tableBody = document.getElementById('orderTableBody');
+  let noResultsRow = document.getElementById('noSearchResults');
+  
+  if (show && !noResultsRow) {
+    noResultsRow = document.createElement('tr');
+    noResultsRow.id = 'noSearchResults';
+    noResultsRow.innerHTML = `
+      <td colspan="7" class="text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3 d-block"></i>
+        <h5 class="text-muted">ไม่พบคำสั่งซื้อที่ค้นหา</h5>
+        <p class="text-muted">ลองเปลี่ยนคำค้นหาหรือกรองด้วยสถานะอื่น</p>
+      </td>
+    `;
+    tableBody.appendChild(noResultsRow);
+  } else if (!show && noResultsRow) {
+    noResultsRow.remove();
+  }
+}
+
+// ======= FILTER FUNCTIONALITY =======
+function setupFilters() {
+  const statusFilter = document.getElementById('statusFilter');
+  if (!statusFilter) return;
+  
+  statusFilter.addEventListener('change', function() {
+    applyFilters();
+  });
+}
+
+function applyFilters() {
+  const statusFilter = document.getElementById('statusFilter')?.value || 'all';
+  const rows = document.querySelectorAll('#orderTableBody .order-row');
+  
+  rows.forEach(row => {
+    const status = row.dataset.status;
+    const matchesStatus = statusFilter === 'all' || status === statusFilter;
+    
+    if (matchesStatus && row.style.display !== 'none') {
+      row.style.display = '';
+    } else if (!matchesStatus) {
+      row.style.display = 'none';
+    }
+  });
+  
+  updateOrderCount();
+}
+
+// ======= SORT FUNCTIONALITY =======
+function setupSort() {
+  const sortOrder = document.getElementById('sortOrder');
+  if (!sortOrder) return;
+  
+  sortOrder.addEventListener('change', function() {
+    sortOrders(this.value);
+  });
+}
+
+function sortOrders(order) {
+  const tbody = document.getElementById('orderTableBody');
+  const rows = Array.from(tbody.querySelectorAll('.order-row'));
+  
+  rows.sort((a, b) => {
+    const dateA = new Date(a.dataset.date);
+    const dateB = new Date(b.dataset.date);
+    
+    if (order === 'newest') {
+      return dateB - dateA;
+    } else {
+      return dateA - dateB;
+    }
+  });
+  
+  rows.forEach(row => tbody.appendChild(row));
+}
+
+// ======= ORDER COUNT =======
+function initializeOrderCount() {
+  updateOrderCount();
+}
+
+function updateOrderCount() {
+  const rows = document.querySelectorAll('#orderTableBody .order-row');
+  const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
+  const orderCount = document.getElementById('orderCount');
+  
+  if (orderCount && rows.length > 0) {
+    orderCount.innerHTML = `<i class="fas fa-box me-1"></i> แสดง ${visibleRows.length} จาก ${rows.length} คำสั่งซื้อ`;
+  }
+}
+
 /**
  * Function to view images in Bootstrap modal
  * @param {string} customImg - Filename of custom image uploaded by customer

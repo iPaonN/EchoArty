@@ -23,35 +23,101 @@
       <i class="fas fa-boxes me-2"></i>จัดการสินค้า
     </h1>
 
-    <!-- Action Buttons Row -->
-    <div class="add-product-link">
-      <div class="mb-3" id="cat-button">
-        <button
-          class="btn btn-primary px-4 py-2 fs-5 custom-button"
-          type="button"
-          data-bs-toggle="offcanvas"
-          data-bs-target="#sidebar"
-          aria-controls="sidebar"
-        >
-          <i class="fa-solid fa-filter"></i> ตัวกรอง
-        </button>
+    <!-- Enhanced Search and Filter Bar -->
+    <div class="search-filter-bar mb-4">
+      <div class="row g-3 align-items-center">
+        <!-- Search Box -->
+        <div class="col-md-5">
+          <div class="search-box-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <input 
+              type="text" 
+              id="productSearch" 
+              class="form-control search-input" 
+              placeholder="ค้นหาสินค้า... (Ctrl+F)"
+              aria-label="Search products"
+            />
+            <button 
+              class="clear-search-btn" 
+              id="clearSearchBtn" 
+              style="display: none;"
+              title="Clear search"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Filter Button -->
+        <div class="col-md-3">
+          <button
+            class="btn btn-outline-primary w-100"
+            type="button"
+            data-bs-toggle="offcanvas"
+            data-bs-target="#sidebar"
+            aria-controls="sidebar"
+            title="Filter by category"
+          >
+            <i class="fa-solid fa-filter me-2"></i>ตัวกรอง
+          </button>
+        </div>
+        
+        <!-- Add Product Button -->
+        <div class="col-md-4">
+          <button 
+            onclick="openAddModal()" 
+            class="btn btn-success w-100"
+            title="Add new product (Ctrl+N)"
+          >
+            <i class="fas fa-plus me-2"></i>เพิ่มสินค้า
+          </button>
+        </div>
       </div>
-      <a onclick="openAddModal()" class="custom-button">
-        <i class="fas fa-plus me-2"></i>เพิ่มสินค้า
-      </a>
     </div>
 
-    <!-- Product Count Display -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <span id="productCount" class="text-muted"></span>
-      <small class="text-muted">คลิกที่ตัวกรองเพื่อกรองตามหมวดหมู่</small>
+    <!-- Product Count and Bulk Actions -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-3">
+        <span id="productCount" class="text-muted"></span>
+        <span id="searchResultCount" class="badge bg-info" style="display: none;"></span>
+      </div>
+      
+      <!-- Bulk Actions (hidden by default) -->
+      <div id="bulkActionsBar" class="bulk-actions-bar" style="display: none;">
+        <span id="selectedCount" class="me-3 text-primary fw-bold"></span>
+        <button class="btn btn-sm btn-outline-danger" onclick="bulkDelete()" title="Delete selected">
+          <i class="fas fa-trash me-1"></i>ลบที่เลือก
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="clearSelection()" title="Clear selection">
+          <i class="fas fa-times me-1"></i>ยกเลิก
+        </button>
+      </div>
+    </div>
+    
+    <!-- Keyboard Shortcuts Hint -->
+    <div class="keyboard-hints mb-3">
+      <small class="text-muted">
+        <i class="fas fa-keyboard me-1"></i>
+        <kbd>Ctrl+N</kbd> เพิ่มสินค้า | 
+        <kbd>Ctrl+F</kbd> ค้นหา |
+        <kbd>Esc</kbd> ปิด
+      </small>
     </div>
 
     <!-- Products Table -->
     <div class="table-responsive">
-      <table class="table table-hover">
+      <table class="table table-hover" id="productsTable">
         <thead class="table-primary">
           <tr>
+            <th style="width: 50px; text-align: center;">
+              <input 
+                type="checkbox" 
+                id="selectAllCheckbox" 
+                class="form-check-input" 
+                title="Select all products"
+                onchange="toggleSelectAll(this)"
+              />
+            </th>
             <th style="text-align: center">
               <i class="fas fa-hashtag me-2"></i>รหัส
             </th>
@@ -68,7 +134,15 @@
         </thead>
         <tbody id="productTableBody">
           {% if products %} {% for product in products %}
-          <tr data-product-id="{{ product.p_id }}">
+          <tr data-product-id="{{ product.p_id }}" class="product-row">
+            <td style="text-align: center">
+              <input 
+                type="checkbox" 
+                class="form-check-input product-checkbox" 
+                data-product-id="{{ product.p_id }}"
+                onchange="updateBulkActions()"
+              />
+            </td>
             <td style="text-align: center">{{ product.p_id }}</td>
             <td class="product-name">{{ product.name }}</td>
             <td class="product-description">{{ product.description }}</td>
